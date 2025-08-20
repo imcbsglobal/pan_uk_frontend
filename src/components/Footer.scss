@@ -1,0 +1,349 @@
+// Footer Styles
+.footer {
+  background: #1a1a1a;
+  color: #ffffff;
+  padding: 60px 0 0 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  .footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+    gap: 40px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+  }
+
+  .footer-section {
+    .footer-logo {
+      margin-bottom: 20px;
+
+      // Updated logo styles for footer
+      .footer-logo-image {
+        height: 60px; // Good size for footer
+        width: auto;
+        max-width: 200px;
+        object-fit: contain;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        filter: brightness(1.1); // Slightly brighter for dark background
+        
+        &:hover {
+          transform: scale(1.02);
+          filter: brightness(1.2);
+        }
+
+        @media (max-width: 768px) {
+          height: 50px;
+          max-width: 180px;
+        }
+
+        @media (max-width: 480px) {
+          height: 45px;
+          max-width: 160px;
+        }
+      }
+
+      // Keep old text logo styles as fallback (you can remove these)
+      span {
+        font-size: 24px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+        display: block;
+      }
+
+      small {
+        display: block;
+        font-size: 12px;
+        color: #f2b307;
+        font-weight: 400;
+        margin-top: 4px;
+      }
+    }
+
+    .footer-description {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #cccccc;
+      margin: 0;
+      max-width: 280px;
+
+      @media (max-width: 480px) {
+        max-width: 100%;
+      }
+    }
+
+    .footer-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 0 0 20px 0;
+      letter-spacing: 0.5px;
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 30px;
+        height: 2px;
+        background: #f2b307;
+        border-radius: 1px;
+      }
+    }
+
+    .footer-links {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+
+      li {
+        margin-bottom: 12px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        a {
+          color: #cccccc;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 400;
+          transition: all 0.3s ease;
+          display: inline-block;
+          padding: 2px 0;
+
+          &:hover {
+            color: #f2b307;
+            transform: translateX(3px);
+          }
+        }
+      }
+    }
+
+    .contact-info {
+      .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        color: #cccccc;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        svg {
+          color: #f2b307;
+          flex-shrink: 0;
+        }
+
+        span {
+          line-height: 1.4;
+        }
+      }
+    }
+  }
+}
+
+// Footer Bottom Section
+.footer-bottom {
+  background: #111111;
+  padding: 20px 0;
+  border-top: 1px solid #333333;
+  margin-top: 50px;
+
+  .footer-container {
+    display: block;
+    padding: 0 20px;
+  }
+
+  .footer-bottom-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 15px;
+      text-align: center;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #cccccc;
+      font-weight: 400;
+    }
+
+    .footer-legal {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+
+      @media (max-width: 480px) {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      a {
+        color: #cccccc;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 400;
+        transition: color 0.3s ease;
+
+        &:hover {
+          color: #f2b307;
+        }
+      }
+
+      .separator {
+        color: #666666;
+        font-size: 12px;
+
+        @media (max-width: 480px) {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+// Responsive Adjustments
+@media (max-width: 968px) {
+  .footer {
+    padding: 50px 0 0 0;
+
+    .footer-container {
+      gap: 35px;
+    }
+
+    .footer-section {
+      .footer-title {
+        font-size: 15px;
+        margin-bottom: 18px;
+      }
+
+      .footer-links li {
+        margin-bottom: 10px;
+
+        a {
+          font-size: 13px;
+        }
+      }
+
+      .footer-description {
+        font-size: 13px;
+      }
+
+      .contact-info .contact-item {
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+    }
+  }
+
+  .footer-bottom {
+    margin-top: 40px;
+    padding: 18px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 40px 0 0 0;
+
+    .footer-container {
+      padding: 0 15px;
+    }
+
+    .footer-section {
+      .footer-logo {
+        margin-bottom: 16px;
+
+        span {
+          font-size: 22px;
+        }
+      }
+
+      .footer-title {
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .footer-links li {
+        margin-bottom: 8px;
+      }
+    }
+  }
+
+  .footer-bottom {
+    margin-top: 30px;
+    padding: 15px 0;
+
+    .footer-container {
+      padding: 0 15px;
+    }
+
+    .footer-bottom-content {
+      gap: 12px;
+
+      p {
+        font-size: 13px;
+      }
+
+      .footer-legal a {
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+// Dark theme enhancements
+@media (prefers-color-scheme: dark) {
+  .footer {
+    background: #0f0f0f;
+    
+    .footer-section {
+      .footer-logo .footer-logo-image {
+        filter: brightness(1.3);
+        
+        &:hover {
+          filter: brightness(1.4);
+        }
+      }
+      
+      .footer-links li a:hover {
+        color: #ffd700;
+      }
+      
+      .contact-info .contact-item svg {
+        color: #ffd700;
+      }
+    }
+    
+    .footer-bottom {
+      background: #080808;
+      border-top-color: #2a2a2a;
+      
+      .footer-legal a:hover {
+        color: #ffd700;
+      }
+    }
+  }
+}
