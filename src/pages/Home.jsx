@@ -42,92 +42,78 @@ function Home() {
       <p className="section-subtitle">Discover our wide range of premium fashion collections</p>
     </div>
     <div className="categories-grid">
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center" alt="Men's Wear" />
-        </div>
-        <h3 className="category-title">Men's Wear</h3>
-      </div>
+      {[
+        "Shirt",
+        "T-Shirt",
+        "Jeans",
+        "Cotton Pant",
+        "Footwear",
+        "Co-ords",
+        "Watches",
+        "Track",
+        "Caps",
+        "Jewellery",
+        "Sunglasses",
+        "Wallets",
+        "Combo set",
+        "Pants",
+        "Shorts",
+        "Belt",
+        "Suit",
+        "Sherwani",
+        "Jodhpuri",
+        "Kurthas",
+        "Dress code",
+        "Jacket",
+        "Perfume",
+        "Lotion",
+      ]
+        .filter((v, i, a) => a.indexOf(v) === i) // remove duplicates
+        .map((category, index) => {
+          const images = {
+            "Shirt": "https://avatars.mds.yandex.net/i?id=5c76768530d0bb6b2bfd944b0b4c01be05f64263-15273796-images-thumbs&n=13",
+            "T-Shirt": "https://threadcurve.com/wp-content/uploads/2020/06/types-of-t-shirts-June252020-1-min.jpg",
+            "Jeans": "https://avatars.mds.yandex.net/i?id=12ca4c51bac06cb8e7320723ebb31863520e7562-5294211-images-thumbs&n=13",
+            "Cotton Pant": "https://avatars.mds.yandex.net/i?id=f794272c1a0f622dbeba3a7ec4faae4590c1d34b-10576314-images-thumbs&n=13",
+            "Footwear": "https://avatars.mds.yandex.net/i?id=c980cc0f23b52ede5f8e17700b04a34b0d653726-5524434-images-thumbs&n=13",
+            "Co-ords": "https://avatars.mds.yandex.net/i?id=5cf076039615d9e29be5a61f8f8c3819c34c0b66-4266390-images-thumbs&n=13",
+            "Watches": "https://avatars.mds.yandex.net/i?id=b280c5c152e73ed68d3e2d058df4a2738588dbdf-4432378-images-thumbs&n=13",
+            "Track": "https://avatars.mds.yandex.net/i?id=34958bbc815f723e69c42771d58b27b0a2b35ab5-12474456-images-thumbs&n=13",
+            "Caps": "https://avatars.mds.yandex.net/i?id=3105fd968064bc197bbd8abe1cfe85a6b98bc5db7d9e1bb3-12530517-images-thumbs&n=13",
+            "Jewellery": "https://avatars.mds.yandex.net/i?id=aac501e3aa6355247e80366cb9534abc5413c1ca-7094423-images-thumbs&n=13",
+            "Sunglasses": "https://avatars.mds.yandex.net/i?id=df45a19acc0a41c5ff9f745b266ed6c711c94adb-4580574-images-thumbs&n=13",
+            "Wallets": "https://avatars.mds.yandex.net/i?id=522af53e28f6007585df5b35cc6807a03ba922ee-8255800-images-thumbs&n=13",
+            "Combo set": "https://avatars.mds.yandex.net/i?id=c20ff565c49f1371c8c3c3cf417eddfa7343f8cd-6959765-images-thumbs&n=13",
+            "Pants": "https://avatars.mds.yandex.net/i?id=1e85b06aeb0859683c1be0a724d2b5ee4d81e56c-4568431-images-thumbs&n=13",
+            "Shorts": "https://avatars.mds.yandex.net/i?id=8e9f532140c0ad0e811914d38f89f287450ac803-10456573-images-thumbs&n=13",
+            "Belt": "https://avatars.mds.yandex.net/i?id=1af1a8c0495302c5f7d4d7ba22a7d03f183630ca-9185952-images-thumbs&n=13",
+            "Suit": "https://avatars.mds.yandex.net/i?id=57c2afbfa5e4b05a12f0ca4a9aa3c82f4c776166-5298842-images-thumbs&n=13",
+            "Sherwani": "https://avatars.mds.yandex.net/i?id=ae5ce3a99bed2cb044cf89a67d1f0547a2244da7-5437458-images-thumbs&n=13",
+            "Jodhpuri": "https://avatars.mds.yandex.net/i?id=44460250d1758fab14d2713e2c0500d9373b8d85-12347000-images-thumbs&n=13",
+            "Kurthas": "https://avatars.mds.yandex.net/i?id=a18891cd007b8331e65298eca2e4108600f37f8d-9229079-images-thumbs&n=13",
+            "Dress code": "https://avatars.mds.yandex.net/i?id=794617b79a5b7b32bb4224d97c4ff891e38ad380-12421240-images-thumbs&n=13",
+            "Jacket": "https://avatars.mds.yandex.net/i?id=b160d192a607a291524398ab408f3a53c12287a8-5277625-images-thumbs&n=13",
+            "Perfume": "https://avatars.mds.yandex.net/i?id=956c0fc59bd7e39b5feff9dec271e4e2-5245347-images-thumbs&n=13",
+            "Lotion": "https://avatars.mds.yandex.net/i?id=324083e619add493028bfacab69e147ec9acc371-11395806-images-thumbs&n=13",
+          };
 
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=center" alt="IMT" />
-        </div>
-        <h3 className="category-title">IMT</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=400&h=400&fit=crop&crop=center" alt="Co-ord Set" />
-        </div>
-        <h3 className="category-title">Co-ord Set</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=400&h=400&fit=crop&crop=center" alt="Wedding Suit" />
-        </div>
-        <h3 className="category-title">Wedding Suit</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=400&h=400&fit=crop&crop=center" alt="Kids Boys" />
-        </div>
-        <h3 className="category-title">Kids Boys</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1556306535-38febf6782e7?w=400&h=400&fit=crop&crop=center" alt="Accessories" />
-        </div>
-        <h3 className="category-title">Accessories</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop&crop=center" alt="Footwear" />
-        </div>
-        <h3 className="category-title">Footwear</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=400&fit=crop&crop=center" alt="Crocs" />
-        </div>
-        <h3 className="category-title">Crocs</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop&crop=center" alt="Watch" />
-        </div>
-        <h3 className="category-title">Watch</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop&crop=center" alt="Cap" />
-        </div>
-        <h3 className="category-title">Cap</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop&crop=center" alt="Jewellery" />
-        </div>
-        <h3 className="category-title">Jewellery</h3>
-      </div>
-
-      <div className="category-card">
-        <div className="category-image">
-          <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center" alt="Combo" />
-        </div>
-        <h3 className="category-title">Combo</h3>
-      </div>
+          return (
+            <div className="category-card" key={index}>
+              <div className="category-image">
+                <img
+                  src={images[category]}
+                  alt={category}
+                />
+              </div>
+              <h3 className="category-title">{category}</h3>
+            </div>
+          );
+        })}
     </div>
   </div>
 </section>
+
+
 
 {/* Products Section */}
 <section className="products-section">

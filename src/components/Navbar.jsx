@@ -21,7 +21,15 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  LogOut
+  LogOut,
+  Glasses,
+  Wallet,
+  ShoppingBag,
+  Diamond,
+  GraduationCap,
+  FlaskConical,
+  Sparkle,
+  Gift,
 } from "lucide-react";
 import panukLogo from "../assets/panuk-logo.png.png";
 import "./Navbar.scss";
@@ -34,22 +42,21 @@ function Navbar() {
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
-  // Check login status on component mount and when localStorage changes
+  // --- login status checker ---
   useEffect(() => {
     const checkLoginStatus = () => {
-      const token = localStorage.getItem('access');
-      const userData = localStorage.getItem('user');
-      
+      const token = localStorage.getItem("access");
+      const userData = localStorage.getItem("user");
+
       if (token && userData) {
         try {
           const parsedUser = JSON.parse(userData);
           setIsLoggedIn(true);
           setUser(parsedUser);
         } catch (error) {
-          // If user data is corrupted, clear everything
-          localStorage.removeItem('access');
-          localStorage.removeItem('refresh');
-          localStorage.removeItem('user');
+          localStorage.removeItem("access");
+          localStorage.removeItem("refresh");
+          localStorage.removeItem("user");
           setIsLoggedIn(false);
           setUser(null);
         }
@@ -59,54 +66,39 @@ function Navbar() {
       }
     };
 
-    // Check initially
     checkLoginStatus();
-
-    // Listen for storage changes (when user logs in/out in another tab)
-    window.addEventListener('storage', checkLoginStatus);
-
-    // Also check periodically in case token expires
+    window.addEventListener("storage", checkLoginStatus);
     const interval = setInterval(checkLoginStatus, 5000);
 
     return () => {
-      window.removeEventListener('storage', checkLoginStatus);
+      window.removeEventListener("storage", checkLoginStatus);
       clearInterval(interval);
     };
   }, []);
 
   const handleLogout = () => {
-    // Clear all stored data
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
-    localStorage.removeItem('user');
-    
-    // Update state
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user");
     setIsLoggedIn(false);
     setUser(null);
-    
-    // Redirect to home page
-    navigate('/');
-    
-    // Optional: Show a success message
-    // You could add a toast notification here
+    navigate("/");
   };
 
   const handleMobileDropdown = (menu) => {
-    setMobileDropdowns(prev => ({
+    setMobileDropdowns((prev) => ({
       ...prev,
-      [menu]: !prev[menu]
+      [menu]: !prev[menu],
     }));
   };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
-    // Reset all dropdowns when closing mobile menu
     if (isMobileMenuOpen) {
       setMobileDropdowns({});
     }
   };
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -116,20 +108,18 @@ function Navbar() {
     };
 
     if (isMobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      // Prevent body scroll when mobile menu is open
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "unset";
     };
   }, [isMobileMenuOpen]);
 
-  // Close mobile menu on window resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 768 && isMobileMenuOpen) {
@@ -137,113 +127,106 @@ function Navbar() {
         setMobileDropdowns({});
       }
     };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [isMobileMenuOpen]);
 
+  // ---- Menu Items with valid Lucide icons ----
   const menuItems = [
     {
-      id: 'mens',
+      id: "mens",
       icon: Shirt,
       label: "Men's Wear",
       hasDropdown: true,
       items: [
-        { icon: Shirt, label: 'Shirt' },
-        { icon: Zap, label: 'T-Shirt' },
-        { icon: Users, label: 'Jeans' },
-        { icon: Users, label: 'Cotton Pant' },
-        { icon: Users, label: 'Footwear' },
-        { icon: Users, label: 'Co-ords' },
-        { icon: Users, label: 'Watches' },
-        { icon: Users, label: 'Track' },
-        { icon: Users, label: 'Caps' },
-        { icon: Users, label: 'Jewellery' },
-        { icon: Users, label: 'Sunglasses' },
-        { icon: Users, label: 'Wallets' },
-        { icon: Users, label: 'Combo set' },
-      ]
+        { icon: Shirt, label: "Shirt" },
+        { icon: Zap, label: "T-Shirt" },
+        { icon: Users, label: "Jeans" },
+        { icon: Package, label: "Cotton Pant" },
+        { icon: Footprints, label: "Footwear" },
+        { icon: ShoppingBag, label: "Co-ords" },
+        { icon: Watch, label: "Watches" },
+        { icon: Package, label: "Track" },
+        { icon: GraduationCap, label: "Caps" },
+        { icon: Diamond, label: "Jewellery" },
+        { icon: Glasses, label: "Sunglasses" },
+        { icon: Wallet, label: "Wallets" },
+        { icon: Gift, label: "Combo set" },
+      ],
     },
-    
-    
     {
-      id: 'kids and Boys',
+      id: "kidsboys",
       icon: Baby,
-      label: 'Kids and Boys',
+      label: "Kids and Boys",
       hasDropdown: true,
       items: [
-        { icon: Shirt, label: 'Shirt' },
-        { icon: Users, label: 'Pants' },
-        { icon: Shirt, label: 'T-shirt' },
-        { icon: Users, label: 'Jeans' },
-        { icon: Users, label: 'co-ords' },
-        { icon: Users, label: 'Combo set' },
-        { icon: Users, label: 'Track' },
-        { icon: Users, label: 'Shots' },
-        { icon: Users, label: 'Footwear' },
-        { icon: Users, label: 'Belt' },
-        { icon: Users, label: 'Cap' },
-        { icon: Users, label: 'Sunglasses' },
-        { icon: Users, label: 'Suit' },
-        { icon: Users, label: 'Sharwani' },
-      ]
+        { icon: Shirt, label: "Shirt" },
+        { icon: Package, label: "Pants" },
+        { icon: Zap, label: "T-shirt" },
+        { icon: Users, label: "Jeans" },
+        { icon: ShoppingBag, label: "Co-ords" },
+        { icon: Gift, label: "Combo set" },
+        { icon: Package, label: "Track" },
+        { icon: Package, label: "Shorts" },
+        { icon: Footprints, label: "Footwear" },
+        { icon: Package, label: "Belt" },
+        { icon: GraduationCap, label: "Cap" },
+        { icon: Glasses, label: "Sunglasses" },
+        { icon: Crown, label: "Suit" },
+        { icon: Crown, label: "Sherwani" },
+      ],
     },
     {
-      id: 'Unisex',
-      icon: Baby,
-      label: 'Unisex',
+      id: "unisex",
+      icon: Smile,
+      label: "Unisex",
       hasDropdown: true,
       items: [
-        { icon: Shirt, label: 'Shirt' },
-        { icon: Users, label: 'T-shirt' },
-        { icon: Users, label: 'Jeans' },
-        { icon: Users, label: 'Footwear' },
-        { icon: Users, label: 'Co-ords' },
-        { icon: Users, label: 'Track' },
-        { icon: Users, label: 'Watch' },
-        { icon: Users, label: 'Cap' },
-        { icon: Users, label: 'Sunglasses' },
-        { icon: Users, label: 'Jewellery' },
-      ]
+        { icon: Shirt, label: "Shirt" },
+        { icon: Zap, label: "T-shirt" },
+        { icon: Users, label: "Jeans" },
+        { icon: Footprints, label: "Footwear" },
+        { icon: ShoppingBag, label: "Co-ords" },
+        { icon: Package, label: "Track" },
+        { icon: Watch, label: "Watch" },
+        { icon: GraduationCap, label: "Cap" },
+        { icon: Glasses, label: "Sunglasses" },
+        { icon: Diamond, label: "Jewellery" },
+      ],
     },
     {
-      id: 'Imported',
-      icon: Baby,
-      label: 'Imported',
+      id: "imported",
+      icon: Gem,
+      label: "Imported",
       hasDropdown: true,
       items: [
-        { icon: Shirt, label: 'Shirt' },
-        { icon: Users, label: 'T-shirt' },
-        { icon: Users, label: 'Jacket' },
-        { icon: Users, label: 'Jeans' },
-        { icon: Users, label: 'Jewellery' },
-        { icon: Users, label: 'Sunglasses' },
-        { icon: Users, label: 'Watches' },
-        { icon: Users, label: 'Perfume' },
-        { icon: Users, label: 'Lotion' },
-        { icon: Users, label: 'Cap' },
-        { icon: Users, label: 'Footwear' },
-        { icon: Users, label: 'Crocs' }
-      ]
+        { icon: Shirt, label: "Shirt" },
+        { icon: Zap, label: "T-shirt" },
+        { icon: HardHat, label: "Jacket" },
+        { icon: Users, label: "Jeans" },
+        { icon: Diamond, label: "Jewellery" },
+        { icon: Glasses, label: "Sunglasses" },
+        { icon: Watch, label: "Watches" },
+        { icon: FlaskConical, label: "Perfume" },
+        { icon: Sparkle, label: "Lotion" },
+        { icon: GraduationCap, label: "Cap" },
+        { icon: Footprints, label: "Footwear" },
+        { icon: Package, label: "Crocs" },
+      ],
     },
     {
-      id: 'wedding Hub',
+      id: "weddinghub",
       icon: Crown,
-      label: 'Wedding Suit',
+      label: "Wedding Suit",
       hasDropdown: true,
       items: [
-        { icon: Shirt, label: 'Suit' },
-        { icon: Users, label: 'Sharwani' },
-        { icon: Users, label: 'Jodhpuri' },
-        { icon: Users, label: 'Kurthas' },
-        { icon: Users, label: 'Dress code' },
-      ]
+        { icon: Crown, label: "Suit" },
+        { icon: Crown, label: "Sherwani" },
+        { icon: Crown, label: "Jodhpuri" },
+        { icon: Crown, label: "Kurthas" },
+        { icon: Crown, label: "Dress code" },
+      ],
     },
-    
-    
-    
-    
-    
   ];
 
   return (
@@ -253,18 +236,14 @@ function Navbar() {
         <div className="nav-left">
           <div className="logo">
             <Link to="/">
-              <img 
-                src={panukLogo} 
-                alt="PAN UK Wedding Hub" 
-                className="logo-image"
-              />
+              <img src={panukLogo} alt="PAN UK Wedding Hub" className="logo-image" />
             </Link>
           </div>
           <div className="search-container">
-            <input 
-              type="text" 
-              placeholder="Search products..." 
-              className="search-input" 
+            <input
+              type="text"
+              placeholder="Search products..."
+              className="search-input"
               aria-label="Search products"
             />
             <button className="search-btn" aria-label="Search">
@@ -280,17 +259,15 @@ function Navbar() {
               {isLoggedIn ? (
                 <div className="logged-in-user">
                   <span className="username">Hi, {user?.username}</span>
-                  <button 
-                    onClick={handleLogout}
-                    className="logout-btn"
-                    title="Logout"
-                  >
+                  <button onClick={handleLogout} className="logout-btn" title="Logout">
                     <LogOut size={14} />
                     <span>Logout</span>
                   </button>
                 </div>
               ) : (
-                <strong><Link to="/login">Login</Link></strong>
+                <strong>
+                  <Link to="/login">Login</Link>
+                </strong>
               )}
             </div>
           </div>
@@ -304,59 +281,45 @@ function Navbar() {
 
       {/* ---- Menu Row ---- */}
       <div className="menu-row" ref={menuRef}>
-        {/* Mobile Menu Toggle */}
-        <button 
-          className="mobile-menu-toggle" 
-          onClick={toggleMobileMenu}
-          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={isMobileMenuOpen}
-        >
+        <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
           {isMobileMenuOpen ? (
             <>
               <X size={20} />
-              <span style={{ marginLeft: '8px' }}>Close Menu</span>
+              <span style={{ marginLeft: "8px" }}>Close Menu</span>
             </>
           ) : (
             <>
               <Menu size={20} />
-              <span style={{ marginLeft: '8px' }}>Browse Categories</span>
+              <span style={{ marginLeft: "8px" }}>Browse Categories</span>
             </>
           )}
         </button>
 
-        <ul className={`menu-list ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+        <ul className={`menu-list ${isMobileMenuOpen ? "mobile-open" : ""}`}>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isMobileDropdownOpen = mobileDropdowns[item.id];
-            
+
             return (
-              <li 
+              <li
                 key={item.id}
                 data-tooltip={item.label}
                 onClick={() => {
-                  if (window.innerWidth <= 768 && item.hasDropdown) {
-                    handleMobileDropdown(item.id);
-                  }
+                  if (window.innerWidth <= 768 && item.hasDropdown) handleMobileDropdown(item.id);
                 }}
               >
                 <Icon size={16} />
                 <span>{item.label}</span>
                 {item.hasDropdown && (
                   <>
-                    {/* Desktop dropdown arrow */}
-                    <ChevronDown 
-                      size={14} 
-                      className="dropdown-arrow desktop-only" 
-                    />
-                    {/* Mobile dropdown arrow */}
-                    <ChevronRight 
-                      size={14} 
-                      className={`dropdown-arrow mobile-only ${isMobileDropdownOpen ? 'rotated' : ''}`}
+                    <ChevronDown size={14} className="dropdown-arrow desktop-only" />
+                    <ChevronRight
+                      size={14}
+                      className={`dropdown-arrow mobile-only ${isMobileDropdownOpen ? "rotated" : ""}`}
                     />
                   </>
                 )}
-                
-                {/* Desktop Dropdown - Always render, controlled by CSS hover */}
+
                 {item.hasDropdown && (
                   <ul className="dropdown desktop-dropdown">
                     {item.items.map((subItem, index) => {
@@ -370,10 +333,9 @@ function Navbar() {
                     })}
                   </ul>
                 )}
-                
-                {/* Mobile Dropdown */}
+
                 {item.hasDropdown && (
-                  <ul className={`dropdown mobile-dropdown ${isMobileDropdownOpen ? 'active' : ''}`}>
+                  <ul className={`dropdown mobile-dropdown ${isMobileDropdownOpen ? "active" : ""}`}>
                     {item.items.map((subItem, index) => {
                       const SubIcon = subItem.icon;
                       return (
