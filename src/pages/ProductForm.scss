@@ -1,0 +1,117 @@
+/* ProductForm.scss */
+.product-form {
+  padding: 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  /* top bar */
+  .back-link-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: underline;
+    color: #1e293b;
+  }
+
+  form {
+    display: grid;
+    gap: 16px;
+    max-width: 800px;
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 14px;
+      color: #0f172a;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      outline: none;
+
+      &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 96px;
+    }
+
+    /* validation error text */
+    .error-text {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #b00020;
+    }
+
+    /* multiple images preview chips */
+    .file-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+
+      .chip {
+        font-size: 12px;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+      }
+    }
+
+    /* submit button */
+    .submit-btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      background: #111827;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.05s ease, opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.92;
+      }
+      &:active {
+        transform: translateY(1px);
+      }
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  /* optional: group two fields side-by-side on wide screens */
+  .two-col {
+    display: grid;
+    gap: 16px;
+  }
+  @media (min-width: 720px) {
+    .two-col {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+}
