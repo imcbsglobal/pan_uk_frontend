@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../layouts/AdminLayout';
+import './ProductForm.scss';
 import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 
 const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';

@@ -1,21 +1,30 @@
 // src/App.jsx
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import AdminDashboard from './pages/Admin_Dashboard'
-import ProductsList from './pages/ProductsList'
-import ProductForm from './pages/ProductForm'
-import ProductEdit from './pages/ProductEdit'; 
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+
+import AdminDashboard from './pages/Admin_Dashboard';
+import ProductsList from './pages/ProductsList';
+import ProductForm from './pages/ProductForm';
+import ProductEdit from './pages/ProductEdit';
+
 import ProductDetail from './pages/ProductDetail';
 import CategoryPage from './pages/CategoryPage';
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AllProducts from './pages/AllProducts';   // ✅ correct import
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Public */}
         <Route path="/" element={<Home />} />
+        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/all-products" element={<AllProducts />} />
+
+        {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -24,13 +33,12 @@ function App() {
         <Route path="/admin/products" element={<ProductsList />} />
         <Route path="/admin/products/new" element={<ProductForm />} />
         <Route path="/admin/products/:id/edit" element={<ProductEdit />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/category/:slug" element={<CategoryPage />} />
 
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
-
       </Routes>
     </Router>
   );
 }
+
 export default App;
