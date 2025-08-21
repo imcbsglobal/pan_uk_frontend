@@ -50,15 +50,16 @@ function Footer() {
           <div className="contact-info">
             <div className="contact-item">
               <Mail size={16} />
-              <span>info@panukweddinghub.com</span>
+              <span>panuk0075@gmail.com</span>
             </div>
             <div className="contact-item">
               <Phone size={16} />
-              <span>+91 98765 43210</span>
+              <span>+91 9746010505</span>
             </div>
             <div className="contact-item">
               <MapPin size={16} />
-              <span>Kozhikode, Kerala, India</span>
+              <span>MALL OF KASARAGOD MG ROAD KASARAGOD
+                </span>
             </div>
           </div>
         </div>

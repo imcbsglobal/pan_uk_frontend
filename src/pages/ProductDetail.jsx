@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { FaWhatsapp } from 'react-icons/fa';
+import { FaWhatsapp, FaShoppingCart } from 'react-icons/fa';
 import './ProductDetail.scss';
 
 const apiBase = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
@@ -30,6 +30,9 @@ export default function ProductDetail() {
 
   // local, reorderable copy for swap behavior
   const [localImages, setLocalImages] = useState([]);
+
+  // cart UI feedback
+  const [addedMsg, setAddedMsg] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -69,7 +72,7 @@ export default function ProductDetail() {
     });
   };
 
-  // Compute a proper WhatsApp message
+  // WhatsApp message
   const whatsappHref = useMemo(() => {
     const title = p?.name ? `Inquiry about: ${p.name}` : 'Product inquiry';
     const price = (p?.price ?? '') !== '' ? `\nPrice: ₹${Number(p.price).toFixed(2)}` : '';
@@ -78,6 +81,44 @@ export default function ProductDetail() {
     const txt = encodeURIComponent(`${title}${price}${sku}${link}`);
     return `https://wa.me/?text=${txt}`;
   }, [p]);
+
+  // --- CART: add to localStorage ---
+  const addToCart = () => {
+    if (!p) return;
+
+    // read existing
+    const raw = localStorage.getItem('cart');
+    let cart = [];
+    try { cart = raw ? JSON.parse(raw) : []; } catch { cart = []; }
+
+    // build an item key that includes variant-like fields
+    const key = `${p.id || 'noid'}|${p.color || ''}|${p.size || ''}`;
+
+    const item = {
+      key, // internal dedupe key
+      id: p.id,
+      name: p.name || 'Product',
+      price: Number(p.price || 0),
+      image: mainImage || (p.images?.[0] ? getImageUrl(p.images[0]) : ''),
+      color: p.color || null,
+      size: p.size || null,
+      weight: p.weight || null,
+      brand: p.brand || null,
+      qty: 1,
+    };
+
+    const idx = cart.findIndex((c) => c.key === key);
+    if (idx !== -1) {
+      cart[idx].qty += 1;
+    } else {
+      cart.push(item);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    setAddedMsg('Added to cart ✔');
+    window.clearTimeout(window.__pd_toast);
+    window.__pd_toast = window.setTimeout(() => setAddedMsg(''), 2200);
+  };
 
   if (loading) {
     return (
@@ -113,6 +154,7 @@ export default function ProductDetail() {
 
       <div className="pd-container">
         {err ? <div className="pd-alert pd-alert--warn">{String(err)}</div> : null}
+        {addedMsg ? <div className="pd-toast">{addedMsg}</div> : null}
 
         <div className="pd-grid">
           {/* Gallery */}
@@ -174,54 +216,38 @@ export default function ProductDetail() {
               <p className="pd-desc">{p.description}</p>
             ) : null}
 
-            <a className="pd-btn pd-btn--whatsapp" href={whatsappHref} target="_blank" rel="noreferrer">
-              <FaWhatsapp size={18} style={{ marginRight: 8 }} />
-              Enquire / Order on WhatsApp
-            </a>
+            {/* Action buttons */}
+            <div className="pd-btn-row">
+              <a className="pd-btn pd-btn--whatsapp" href={whatsappHref} target="_blank" rel="noreferrer">
+                <FaWhatsapp size={18} />
+                <span>Enquire / Order on WhatsApp</span>
+              </a>
 
-            <button className="pd-btn pd-btn--ghost" onClick={() => navigate(-1)}>
-              Back
-            </button>
+              <button className="pd-btn pd-btn--primary" onClick={addToCart}>
+                <FaShoppingCart size={16} />
+                <span>Add to Cart</span>
+              </button>
+
+              <button className="pd-btn pd-btn--ghost" onClick={() => navigate('/cart')}>
+                Go to Cart
+              </button>
+
+              <button className="pd-btn pd-btn--ghost" onClick={() => navigate(-1)}>
+                Back
+              </button>
+            </div>
 
             {/* Specs */}
             <div className="pd-specs">
               <h2 className="pd-section-title">Product Specs</h2>
               <dl className="pd-specs-grid">
-                {p.brand ? (
-                  <>
-                    <dt>Brand</dt><dd>{p.brand}</dd>
-                  </>
-                ) : null}
-                {p.material ? (
-                  <>
-                    <dt>Material</dt><dd>{p.material}</dd>
-                  </>
-                ) : null}
-                {p.color ? (
-                  <>
-                    <dt>Color</dt><dd>{p.color}</dd>
-                  </>
-                ) : null}
-                {p.size ? (
-                  <>
-                    <dt>Size</dt><dd>{p.size}</dd>
-                  </>
-                ) : null}
-                {p.weight ? (
-                  <>
-                    <dt>Weight</dt><dd>{p.weight}</dd>
-                  </>
-                ) : null}
-                {p.main_category ? (
-                  <>
-                    <dt>Main Category</dt><dd>{p.main_category}</dd>
-                  </>
-                ) : null}
-                {p.sub_category ? (
-                  <>
-                    <dt>Sub Category</dt><dd>{p.sub_category}</dd>
-                  </>
-                ) : null}
+                {p.brand ? (<><dt>Brand</dt><dd>{p.brand}</dd></>) : null}
+                {p.material ? (<><dt>Material</dt><dd>{p.material}</dd></>) : null}
+                {p.color ? (<><dt>Color</dt><dd>{p.color}</dd></>) : null}
+                {p.size ? (<><dt>Size</dt><dd>{p.size}</dd></>) : null}
+                {p.weight ? (<><dt>Weight</dt><dd>{p.weight}</dd></>) : null}
+                {p.main_category ? (<><dt>Main Category</dt><dd>{p.main_category}</dd></>) : null}
+                {p.sub_category ? (<><dt>Sub Category</dt><dd>{p.sub_category}</dd></>) : null}
               </dl>
             </div>
           </div>
