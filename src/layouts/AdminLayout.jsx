@@ -36,19 +36,10 @@ export default function AdminLayout({ active = 'products', children }) {
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink to="/admin-dashboard" className={`nav-item ${active === 'home' ? 'active' : ''}`}>
-            <Home size={20} />
-            <span>Overview</span>
-          </NavLink>
 
           <NavLink to="/admin/products" className={`nav-item ${active === 'products' ? 'active' : ''}`}>
             <Package size={20} />
             <span>Products</span>
-          </NavLink>
-
-          <NavLink to="/admin/settings" className={`nav-item ${active === 'settings' ? 'active' : ''}`}>
-            <Settings size={20} />
-            <span>Settings</span>
           </NavLink>
         </nav>
 

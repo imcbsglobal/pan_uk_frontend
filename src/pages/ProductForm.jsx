@@ -18,6 +18,8 @@ export default function ProductForm() {
     price: '',
     brand: '',
     material: '',
+    model_name: '',
+    cotton_percentage: '',
     color: '',
     size: '',
     weight: '',
@@ -207,6 +209,32 @@ export default function ProductForm() {
                 placeholder="e.g., 100% Cotton"
               />
             </div>
+
+            <div className="two-col">
+  <div className="form-group">
+    <label>Model name <span className="optional">(optional)</span></label>
+    <input
+      name="model_name"
+      value={form.model_name}
+      onChange={onChange}
+      placeholder="e.g., 511 Slim, Air Max 90"
+    />
+  </div>
+
+  <div className="form-group">
+    <label>Cotton percentage <span className="optional">(optional)</span></label>
+    <input
+      name="cotton_percentage"
+      type="number"
+      min="0"
+      max="100"
+      value={form.cotton_percentage}
+      onChange={onChange}
+      placeholder="e.g., 80"
+    />
+  </div>
+</div>
+
 
             <div className="form-group">
               <label>

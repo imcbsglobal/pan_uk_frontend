@@ -72,15 +72,21 @@ export default function ProductDetail() {
     });
   };
 
-  // WhatsApp message
+  // WhatsApp message (includes Model name & Cotton % if present)
   const whatsappHref = useMemo(() => {
     const title = p?.name ? `Inquiry about: ${p.name}` : 'Product inquiry';
+    const modelLine = p?.model_name ? `\nModel: ${p.model_name}` : '';
+    const cottonProvided = p?.cotton_percentage !== null && p?.cotton_percentage !== undefined && p?.cotton_percentage !== '';
+    const cottonLine = cottonProvided ? `\nCotton: ${p.cotton_percentage}%` : '';
     const price = (p?.price ?? '') !== '' ? `\nPrice: ₹${Number(p.price).toFixed(2)}` : '';
     const sku = p?.id ? `\nProduct ID: ${p.id}` : '';
     const link = typeof window !== 'undefined' ? `\nLink: ${window.location.href}` : '';
-    const txt = encodeURIComponent(`${title}${price}${sku}${link}`);
-    return `https://wa.me/?text=${txt}`;
-  }, [p]);
+    const imageLine = mainImage ? `\nImage: ${mainImage}` : '';
+    
+    const txt = encodeURIComponent(`${title}${modelLine}${cottonLine}${price}${sku}${imageLine}${link}`);
+    return `https://wa.me/919061947005?text=${txt}`;
+  }, [p, mainImage]);
+
 
   // --- CART: add to localStorage ---
   const addToCart = () => {
@@ -104,6 +110,9 @@ export default function ProductDetail() {
       size: p.size || null,
       weight: p.weight || null,
       brand: p.brand || null,
+      // store the new fields too (handy for cart/checkout displays)
+      model_name: p.model_name || null,
+      cotton_percentage: (p.cotton_percentage !== null && p.cotton_percentage !== undefined) ? p.cotton_percentage : null,
       qty: 1,
     };
 
@@ -241,12 +250,19 @@ export default function ProductDetail() {
             <div className="pd-specs">
               <h2 className="pd-section-title">Product Specs</h2>
               <dl className="pd-specs-grid">
+                {/* NEW FIELDS */}
+                {p.model_name ? (<><dt>Model</dt><dd>{p.model_name}</dd></>) : null}
+                {(p.cotton_percentage !== null && p.cotton_percentage !== undefined && p.cotton_percentage !== '') ? (
+                  <><dt>Cotton</dt><dd>{p.cotton_percentage}%</dd></>
+                ) : null}
+
+                {/* Existing fields */}
                 {p.brand ? (<><dt>Brand</dt><dd>{p.brand}</dd></>) : null}
                 {p.material ? (<><dt>Material</dt><dd>{p.material}</dd></>) : null}
                 {p.color ? (<><dt>Color</dt><dd>{p.color}</dd></>) : null}
                 {p.size ? (<><dt>Size</dt><dd>{p.size}</dd></>) : null}
                 {p.weight ? (<><dt>Weight</dt><dd>{p.weight}</dd></>) : null}
-                {p.main_category ? (<><dt>Main Category</dt><dd>{p.main_category}</dd></>) : null}
+                {p.main_category ? (<><dt>Category</dt><dd>{p.main_category}</dd></>) : null}
                 {p.sub_category ? (<><dt>Sub Category</dt><dd>{p.sub_category}</dd></>) : null}
               </dl>
             </div>

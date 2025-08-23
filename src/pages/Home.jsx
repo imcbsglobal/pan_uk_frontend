@@ -128,73 +128,73 @@ export default function Home() {
 
       {/* Products Section (Featured Products) */}
       <section className="products-section">
-        <div className="container-fuild">
+        <div className="container">
           <div className="section-header">
             <h2 className="section-title">Featured Products</h2>
             <p className="section-subtitle">Discover our latest collection of premium fashion</p>
           </div>
 
           <div className="products-grid">
-  {loading ? (
-    <div>Loading…</div>
-  ) : (
-    items.slice(0, 16).map((p) => {
-      const first = p.images?.[0];
-      const src = first ? (first.url || imgUrl(first.image)) : '';
-      return (
-        <div
-          className="product-card"
-          key={p.id}
-          onClick={() => goProduct(p.id)}
-        >
-          <div className="product-image">
-            {src ? (
-              <img src={src} alt={p.name} />
+            {loading ? (
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p className="loading-text">Loading products...</p>
+              </div>
             ) : (
-              <img
-                src="https://via.placeholder.com/400x500?text=No+Image"
-                alt={p.name}
-              />
+              items.slice(0, 16).map((p) => {
+                const first = p.images?.[0];
+                const src = first ? (first.url || imgUrl(first.image)) : '';
+                return (
+                  <div
+                    className="product-card"
+                    key={p.id}
+                    onClick={() => goProduct(p.id)}
+                  >
+                    <div className="product-image">
+                      {src ? (
+                        <img src={src} alt={p.name} />
+                      ) : (
+                        <img
+                          src="https://via.placeholder.com/400x500?text=No+Image"
+                          alt={p.name}
+                        />
+                      )}
+                      <div className="product-overlay">
+                        <button className="quick-view-btn">Quick View</button>
+                      </div>
+                    </div>
+
+                    <div className="product-info">
+                      <h3 className="product-title">{p.name}</h3>
+                      
+                      <div className="product-categories">
+                        {p.main_category && (
+                          <span className="category-tag main">{p.main_category}</span>
+                        )}
+                        {p.sub_category && (
+                          <span className="category-tag sub">{p.sub_category}</span>
+                        )}
+                      </div>
+
+                      <div className="product-price-section">
+                        <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
-            <div className="product-overlay">
-              <button className="quick-view-btn">Quick View</button>
-            </div>
           </div>
 
-          <div className="product-info">
-            <h3 className="product-title">{p.name}</h3>
-
-            {p.main_category ? (
-              <div style={{ fontSize: 13, color: '#495057', marginBottom: 4 }}>
-                {p.main_category}
-              </div>
-            ) : null}
-
-            {p.sub_category ? (
-              <div style={{ fontSize: 13, color: '#6c757d', marginBottom: 6 }}>
-                {p.sub_category}
-              </div>
-            ) : null}
-
-            <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+          {/* View All Products button */}
+          <div className="view-all-products">
+            <button
+              className="view-all-btn"
+              onClick={() => navigate('/all-products')}
+            >
+              View More Products
+            </button>
           </div>
-        </div>
-      );
-    })
-  )}
-</div>
-
-{/* View All Products button */}
-<div className="view-all-products">
-  <button
-    className="view-all-btn"
-    onClick={() => navigate('/all-products')}
-  >
-    View More Products
-  </button>
-</div>
-
-
         </div>
       </section>
 

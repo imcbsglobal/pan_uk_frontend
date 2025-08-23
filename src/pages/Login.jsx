@@ -22,8 +22,8 @@ function Login() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleToggleUserType = () => {
-    setIsAdmin(!isAdmin);
+  const handleSelectUserType = (adminSelected) => {
+    setIsAdmin(adminSelected);
     setErrors({});
     setFormData({ username: '', password: '' });
   };
@@ -34,23 +34,42 @@ function Login() {
     setErrors({});
 
     try {
-      let endpoint;
-      if (isAdmin) {
-        endpoint = '/api/superuser-login/';
-      } else {
-        endpoint = '/api/user-login/';
-      }
-
+      // Choose endpoint based on toggle
+      const endpoint = isAdmin ? '/api/superuser-login/' : '/api/user-login/';
       const { data } = await api.post(endpoint, formData);
 
-      // Store tokens
+      // Frontend enforcement:
+      // 1) If Customer is selected but the returned user is a superuser -> block.
+      if (!isAdmin && data?.user?.is_superuser) {
+        // Clear anything we may have set
+        localStorage.removeItem('access');
+        localStorage.removeItem('refresh');
+        localStorage.removeItem('user');
+        setErrors({
+          general: 'Admins must use the Admin login. Please switch to the Admin tab.',
+        });
+        return;
+      }
+
+      // 2) If Admin is selected but the user is NOT a superuser -> block.
+      if (isAdmin && !data?.user?.is_superuser) {
+        localStorage.removeItem('access');
+        localStorage.removeItem('refresh');
+        localStorage.removeItem('user');
+        setErrors({
+          general: 'Only admins can use this login. Please use the Customer tab.',
+        });
+        return;
+      }
+
+      // Store tokens (only after checks pass)
       localStorage.setItem('access', data.access);
       localStorage.setItem('refresh', data.refresh);
       localStorage.setItem('user', JSON.stringify(data.user));
 
       // Redirect based on user type
       if (isAdmin) {
-        navigate('/admin-dashboard');
+        navigate('/admin/products');
       } else {
         navigate('/');
       }
@@ -80,26 +99,38 @@ function Login() {
             </div>
             <h1 className="login-title">Welcome Back</h1>
             <p className="login-subtitle">
-              {isAdmin ? 'Admin Portal - Sign in to manage your store' : 'Sign in to your account to continue'}
+              {isAdmin
+                ? 'Admin Portal - Sign in to manage your store'
+                : 'Sign in to your account to continue'}
             </p>
           </div>
 
-          {/* User Type Toggle */}
-          <div className="user-type-toggle" style={{ 
-            marginBottom: '24px', 
-            textAlign: 'center',
-            padding: '16px',
-            background: 'rgba(242, 179, 7, 0.05)',
-            borderRadius: '12px',
-            border: '1px solid rgba(242, 179, 7, 0.1)'
-          }}>
-            <div style={{ marginBottom: '12px', fontSize: '14px', color: '#666', fontWeight: '500' }}>
+          {/* User Type Toggle (kept) */}
+          <div
+            className="user-type-toggle"
+            style={{
+              marginBottom: '24px',
+              textAlign: 'center',
+              padding: '16px',
+              background: 'rgba(242, 179, 7, 0.05)',
+              borderRadius: '12px',
+              border: '1px solid rgba(242, 179, 7, 0.1)',
+            }}
+          >
+            <div
+              style={{
+                marginBottom: '12px',
+                fontSize: '14px',
+                color: '#666',
+                fontWeight: '500',
+              }}
+            >
               Login as:
             </div>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
               <button
                 type="button"
-                onClick={() => setIsAdmin(false)}
+                onClick={() => handleSelectUserType(false)}
                 style={{
                   padding: '8px 16px',
                   border: 'none',
@@ -109,14 +140,14 @@ function Login() {
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   background: !isAdmin ? '#f2b307' : '#f5f5f5',
-                  color: !isAdmin ? 'white' : '#666'
+                  color: !isAdmin ? 'white' : '#666',
                 }}
               >
                 Customer
               </button>
               <button
                 type="button"
-                onClick={() => setIsAdmin(true)}
+                onClick={() => handleSelectUserType(true)}
                 style={{
                   padding: '8px 16px',
                   border: 'none',
@@ -126,7 +157,7 @@ function Login() {
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   background: isAdmin ? '#f2b307' : '#f5f5f5',
-                  color: isAdmin ? 'white' : '#666'
+                  color: isAdmin ? 'white' : '#666',
                 }}
               >
                 Admin
@@ -156,9 +187,7 @@ function Login() {
                   required
                 />
               </div>
-              {errors.username && (
-                <div className="error-message">{errors.username}</div>
-              )}
+              {errors.username && <div className="error-message">{errors.username}</div>}
             </div>
 
             {/* Password */}
@@ -186,9 +215,7 @@ function Login() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password && (
-                <div className="error-message">{errors.password}</div>
-              )}
+              {errors.password && <div className="error-message">{errors.password}</div>}
             </div>
 
             <button
@@ -209,17 +236,17 @@ function Login() {
 
           <div className="login-footer">
             {!isAdmin && (
-              <p className="footer-text">
-                Don't have an account?{' '}
-                <Link to="/register" className="footer-link">
-                  Sign up here
+              <>
+                <p className="footer-text">
+                  Don't have an account?{' '}
+                  <Link to="/register" className="footer-link">
+                    Sign up here
+                  </Link>
+                </p>
+                <Link to="/forgot-password" className="forgot-password-link">
+                  Forgot your password?
                 </Link>
-              </p>
-            )}
-            {!isAdmin && (
-              <Link to="/forgot-password" className="forgot-password-link">
-                Forgot your password?
-              </Link>
+              </>
             )}
           </div>
         </div>

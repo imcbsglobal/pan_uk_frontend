@@ -55,7 +55,7 @@ export default function CategoryPage() {
       <Navbar />
 
       <section className="products-section">
-        <div className="container-fuild">
+        <div className="container">
           <div className="section-header">
             <h2 className="section-title">{categoryName}</h2>
             <p className="section-subtitle">Browse all products in this category</p>
@@ -63,9 +63,15 @@ export default function CategoryPage() {
 
           <div className="products-grid">
             {loading ? (
-              <div>Loading…</div>
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p className="loading-text">Loading products...</p>
+              </div>
             ) : filtered.length === 0 ? (
-              <div>No products in this category yet.</div>
+              <div className="no-products-message">
+                <h3>No products in this category yet.</h3>
+                <p>Check back soon for new arrivals!</p>
+              </div>
             ) : (
               filtered.map((p) => {
                 const first = p.images?.[0];
@@ -75,7 +81,14 @@ export default function CategoryPage() {
                   <div className="product-card" key={p.id} onClick={() => goProduct(p.id)}>
                     <div className="product-image">
                       {src ? (
-                        <img src={src} alt={p.name} />
+                        <img 
+                          src={src} 
+                          alt={p.name}
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://via.placeholder.com/400x500?text=Image+Not+Found';
+                          }}
+                        />
                       ) : (
                         <img src="https://via.placeholder.com/400x500?text=No+Image" alt={p.name} />
                       )}
@@ -86,12 +99,19 @@ export default function CategoryPage() {
 
                     <div className="product-info">
                       <h3 className="product-title">{p.name}</h3>
-                      {p.sub_category ? (
-                        <div style={{ fontSize: 13, color: '#6c757d', marginBottom: 6 }}>
-                          {p.sub_category}
-                        </div>
-                      ) : null}
-                      <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+                      
+                      <div className="product-categories">
+                        {p.main_category && (
+                          <span className="category-tag main">{p.main_category}</span>
+                        )}
+                        {p.sub_category && (
+                          <span className="category-tag sub">{p.sub_category}</span>
+                        )}
+                      </div>
+
+                      <div className="product-price-section">
+                        <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+                      </div>
                     </div>
                   </div>
                 );
