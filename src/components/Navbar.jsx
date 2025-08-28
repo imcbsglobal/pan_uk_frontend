@@ -24,7 +24,7 @@ function slugify(txt = "") {
   return String(txt).toLowerCase().replace(/\s+/g, "-");
 }
 
-const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const apiBase = import.meta.env.VITE_API_URL || "https://panukonline.com";
 const api = axios.create({ baseURL: apiBase });
 
 function Navbar() {
