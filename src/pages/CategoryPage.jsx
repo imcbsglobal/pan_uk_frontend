@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import './Home.scss';
 
-const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
 function deslugify(slug = '') {

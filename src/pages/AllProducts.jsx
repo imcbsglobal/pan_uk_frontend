@@ -8,7 +8,7 @@ import Footer from '../components/Footer';
 import './Home.scss'; // reuse your existing product card styles
 import './ProductDetail.scss';
 
-const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
 function imgUrl(path) {

@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import { useCart } from "../context/CartContext.jsx";
 import './Home.scss';
 
-const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
 function slugify(txt = '') {
