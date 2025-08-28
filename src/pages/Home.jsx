@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { useCart } from "../context/CartContext.jsx";
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -19,6 +20,22 @@ function imgUrl(path) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { addItem } = useCart();
+
+    // add-to-cart helper (localStorage for now)
+    const addToCart = (product) => {
+  try {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const idx = cart.findIndex((c) => c.id === product.id);
+    if (idx >= 0) {
+      cart[idx].qty += 1;
+    } else {
+    }
+    localStorage.setItem('cart', JSON.stringify(cart));
+  } catch {}
+};
+
+
 
   // Featured products
   const [items, setItems] = useState([]);
@@ -146,41 +163,86 @@ export default function Home() {
                 const src = first ? (first.url || imgUrl(first.image)) : '';
                 return (
                   <div
-                    className="product-card"
-                    key={p.id}
-                    onClick={() => goProduct(p.id)}
-                  >
-                    <div className="product-image">
-                      {src ? (
-                        <img src={src} alt={p.name} />
-                      ) : (
-                        <img
-                          src="https://via.placeholder.com/400x500?text=No+Image"
-                          alt={p.name}
-                        />
-                      )}
-                      <div className="product-overlay">
-                        <button className="quick-view-btn">Quick View</button>
-                      </div>
-                    </div>
+  className="product-card"
+  key={p.id}
+  onClick={() => goProduct(p.id)}
+>
+  <div className="product-image">
+    {src ? (
+      <img src={src} alt={p.name} loading="lazy" />
+    ) : (
+      <img
+        src="https://via.placeholder.com/400x500?text=No+Image"
+        alt={p.name}
+        loading="lazy"
+      />
+    )}
 
-                    <div className="product-info">
-                      <h3 className="product-title">{p.name}</h3>
-                      
-                      <div className="product-categories">
-                        {p.main_category && (
-                          <span className="category-tag main">{p.main_category}</span>
-                        )}
-                        {p.sub_category && (
-                          <span className="category-tag sub">{p.sub_category}</span>
-                        )}
-                      </div>
+    <div className="product-overlay">
+      <button
+        className="btn ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          goProduct(p.id);
+        }}
+      >
+        Quick View
+      </button>
+    </div>
+  </div>
 
-                      <div className="product-price-section">
-                        <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
-                      </div>
-                    </div>
-                  </div>
+  <div className="product-info">
+    <h3 className="product-title" title={p.name}>{p.name}</h3>
+
+    <div className="product-meta">
+      {p.brand && <span className="brand">{p.brand}</span>}
+      {(p.main_category || p.sub_category) && (
+        <div className="product-categories">
+          {p.main_category && (
+            <span className="category-tag main">{p.main_category}</span>
+          )}
+          {p.sub_category && (
+            <span className="category-tag sub">{p.sub_category}</span>
+          )}
+        </div>
+      )}
+      {p.description && (
+        <p className="product-desc">
+          {String(p.description).slice(0, 70)}
+          {String(p.description).length > 70 ? '…' : ''}
+        </p>
+      )}
+    </div>
+
+    <div className="product-bottom">
+      <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+
+      <div className="actions">
+        <button
+          className="btn outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            goProduct(p.id);
+          }}
+        >
+          Details
+        </button>
+
+      <button
+  className="btn solid"
+  onClick={(e) => {
+    e.stopPropagation();
+    addItem(p, 1); // add product to cart
+  }}
+>
+  Add to Cart
+</button> 
+
+      </div>
+    </div>
+  </div>
+</div>
+
                 );
               })
             )}

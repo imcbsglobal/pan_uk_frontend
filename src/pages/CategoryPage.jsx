@@ -22,30 +22,54 @@ export default function CategoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // If Home sent the raw name through state, use it. Fallback to deslug.
-  const categoryName = (location.state && location.state.raw) || deslugify(slug);
+  // If Navbar sent the raw name through state, use it. Fallback to deslug from URL.
+  // Examples:
+  //  - "Jeans"
+  //  - "Men's Wear Jeans"
+  //  - "Kids and Boys Jeans"
+  const categoryName = (location.state && location.state.raw) || deslugify(slug || '');
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('access');
-    api.get('/api/products/', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(res => setItems(res.data))
+    api
+      .get('/api/products/', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      .then((res) => setItems(res.data))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, [slug]);
 
-  // Filter: show products whose sub_category matches the categoryName (case-insensitive).
-  // If you also want to match main_category, add that condition.
+  /**
+   * Category-aware filtering:
+   * - If user navigated with "Main Sub" (e.g., "Men's Wear Jeans"),
+   *   only show products where BOTH main_category and sub_category match.
+   * - If user navigated with just a parent (e.g., "Men's Wear"),
+   *   match main_category only.
+   * - If user navigated with just a sub (e.g., "Jeans"),
+   *   match sub_category only.
+   */
   const filtered = useMemo(() => {
-    const c = categoryName.toLowerCase();
-    return items.filter(p =>
-      (p.sub_category && p.sub_category.toLowerCase() === c) ||
-      (p.main_category && p.main_category.toLowerCase() === c)
-    );
+    const c = categoryName.trim().toLowerCase();
+
+    return items.filter((p) => {
+      const main = p.main_category?.toLowerCase().trim();
+      const sub = p.sub_category?.toLowerCase().trim();
+
+      // exact full "main sub" match
+      if (main && sub && `${main} ${sub}` === c) return true;
+
+      // exact main-only match
+      if (main === c) return true;
+
+      // exact sub-only match
+      if (sub === c) return true;
+
+      return false;
+    });
   }, [items, categoryName]);
 
   const goProduct = (id) => navigate(`/product/${id}`);
@@ -81,16 +105,20 @@ export default function CategoryPage() {
                   <div className="product-card" key={p.id} onClick={() => goProduct(p.id)}>
                     <div className="product-image">
                       {src ? (
-                        <img 
-                          src={src} 
+                        <img
+                          src={src}
                           alt={p.name}
                           loading="lazy"
                           onError={(e) => {
-                            e.currentTarget.src = 'https://via.placeholder.com/400x500?text=Image+Not+Found';
+                            e.currentTarget.src =
+                              'https://via.placeholder.com/400x500?text=Image+Not+Found';
                           }}
                         />
                       ) : (
-                        <img src="https://via.placeholder.com/400x500?text=No+Image" alt={p.name} />
+                        <img
+                          src="https://via.placeholder.com/400x500?text=No+Image"
+                          alt={p.name}
+                        />
                       )}
                       <div className="product-overlay">
                         <button className="quick-view-btn">Quick View</button>
@@ -99,7 +127,7 @@ export default function CategoryPage() {
 
                     <div className="product-info">
                       <h3 className="product-title">{p.name}</h3>
-                      
+
                       <div className="product-categories">
                         {p.main_category && (
                           <span className="category-tag main">{p.main_category}</span>

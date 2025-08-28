@@ -21,7 +21,8 @@ export default function ProductForm() {
     model_name: '',
     cotton_percentage: '',
     color: '',
-    size: '',
+    size: [],
+    footwear_size: [], // NEW footwear sizes
     weight: '',
     description: '',
   });
@@ -65,32 +66,42 @@ export default function ProductForm() {
   };
 
   const submit = async (e) => {
-    e.preventDefault();
-    const eobj = validate();
-    setErrors(eobj);
-    if (Object.keys(eobj).length) return;
+  e.preventDefault();
+  const eobj = validate();
+  setErrors(eobj);
+  if (Object.keys(eobj).length) return;
 
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ''));
-      images.forEach(file => fd.append('images', file));
+  setSaving(true);
+  try {
+    const fd = new FormData();
 
-      const token = localStorage.getItem('access');
-      await api.post('/api/products/', fd, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+Object.entries(form).forEach(([k, v]) => {
+  if (Array.isArray(v)) {
+    // send arrays as JSON strings
+    fd.append(k, JSON.stringify(v));
+  } else {
+    fd.append(k, v ?? '');
+  }
+});
+images.forEach(file => fd.append('images', file));
 
-      navigate('/admin/products');
-    } catch (err) {
-      setErrors({ general: err.response?.data?.detail || 'Failed to save product' });
-    } finally {
-      setSaving(false);
-    }
-  };
+    const token = localStorage.getItem('access');
+    await api.post('/api/products/', fd, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    navigate('/admin/products');
+  } catch (err) {
+    setErrors({ general: err.response?.data?.detail || 'Failed to save product' });
+  } finally {
+    setSaving(false);
+  }
+};
+
+
 
   return (
     <AdminLayout active="products">
@@ -254,13 +265,51 @@ export default function ProductForm() {
               <label>
                 Size <span className="optional">(optional)</span>
               </label>
-              <input 
-                name="size" 
-                value={form.size} 
-                onChange={onChange} 
-                placeholder="e.g., S, M, L, XL"
-              />
+              {["S", "M", "L", "XL", "XXL"].map((sz) => (
+                <label key={sz} style={{ marginRight: "10px" }}>
+                  <input
+                    type="checkbox"
+                    value={sz}
+                    checked={form.size.includes(sz)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setForm((prev) => {
+                        const newSizes = prev.size.includes(value)
+                          ? prev.size.filter((s) => s !== value)
+                          : [...prev.size, value];
+                        return { ...prev, size: newSizes };
+                      });
+                    }}
+                  />
+                  {sz}
+                </label>
+              ))}
             </div>
+            <div className="form-group">
+    <label>
+      Footwear Size <span className="optional">(optional)</span>
+    </label>
+    {["6", "7", "8", "9", "10", "11"].map((sz) => (
+      <label key={sz} style={{ marginRight: "10px" }}>
+        <input
+          type="checkbox"
+          value={sz}
+          checked={form.footwear_size.includes(sz)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setForm((prev) => {
+              const newSizes = prev.footwear_size.includes(value)
+                ? prev.footwear_size.filter((s) => s !== value)
+                : [...prev.footwear_size, value];
+              return { ...prev, footwear_size: newSizes };
+            });
+          }}
+        />
+        {sz}
+      </label>
+    ))}
+  </div>
+
 
             <div className="form-group">
               <label>

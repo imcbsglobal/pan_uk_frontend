@@ -194,3 +194,11 @@
     dd { margin-bottom: 10px; }
   }
 }
+.pd-btn--success {
+  background-color: #28a745;
+  color: #fff;
+
+  &:hover {
+    background-color: #218838;
+  }
+}

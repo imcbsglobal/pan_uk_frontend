@@ -12,7 +12,8 @@ import ProductEdit from './pages/ProductEdit';
 
 import ProductDetail from './pages/ProductDetail';
 import CategoryPage from './pages/CategoryPage';
-import AllProducts from './pages/AllProducts';   // ✅ correct import
+import AllProducts from './pages/AllProducts'; 
+import Cart from './pages/Cartpage';  // ✅ correct import
 
 function App() {
   return (
@@ -36,6 +37,8 @@ function App() {
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
+         <Route path="/cart" element={<Cart />} />
       </Routes>
     </Router>
   );

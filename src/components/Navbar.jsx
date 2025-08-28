@@ -1,46 +1,123 @@
-import { useState, useEffect, useRef } from "react";
+// src/components/Navbar.jsx
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  Search, 
-  ShoppingCart, 
-  User, 
-  Grid3X3, 
-  ShirtIcon as Shirt, 
-  Zap, 
-  Users, 
-  Crown, 
-  Baby, 
-  Watch, 
-  Footprints, 
-  Smile, 
-  Clock, 
-  HardHat, 
-  Gem, 
-  Package,
+import { useCart } from "../context/CartContext";
+
+
+import {
+  Search,
+  ShoppingCart,
+  User,
   Menu,
   X,
   ChevronDown,
   ChevronRight,
   LogOut,
-  Glasses,
-  Wallet,
-  ShoppingBag,
-  Diamond,
-  GraduationCap,
-  FlaskConical,
-  Sparkle,
-  Gift,
+  Grid3X3,
 } from "lucide-react";
 import panukLogo from "../assets/panuk-logo.png.png";
 import "./Navbar.scss";
+import axios from "axios";
+
+// Helper to slugify the displayed name for the URL path
+function slugify(txt = "") {
+  return String(txt).toLowerCase().replace(/\s+/g, "-");
+}
+
+const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const api = axios.create({ baseURL: apiBase });
 
 function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileDropdowns, setMobileDropdowns] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loadingMenu, setLoadingMenu] = useState(true);
+  const [menuError, setMenuError] = useState(null);
+
   const menuRef = useRef(null);
   const navigate = useNavigate();
+  const { count } = useCart();
+
+  // Navigate to category page.
+  // `raw` is preserved in state so CategoryPage can do category-aware filtering.
+  const goCategory = (name) => {
+    navigate(`/category/${slugify(name)}`, { state: { raw: name } });
+  };
+
+  // When clicking a subcategory, include both the parent + sub in the name
+  const handleSubItemClick = (mainLabel, subLabel, e) => {
+    if (e) e.stopPropagation();
+    const combined = `${mainLabel} ${subLabel}`; // e.g., "Men's Wear Jeans"
+    goCategory(combined);
+    setIsMobileMenuOpen(false);
+    setMobileDropdowns({});
+  };
+
+  // --- Fetch products to build the menu dynamically ---
+  useEffect(() => {
+  const token = localStorage.getItem("access");
+  setLoadingMenu(true);
+  setMenuError(null);
+
+  const fetchProducts = async (withAuth) => {
+    try {
+      const res = await api.get("/api/products/", {
+        headers: withAuth && token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = res.data;
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.results)
+        ? data.results
+        : [];
+      setProducts(list);
+    } catch (err) {
+      // If unauthorized with token, try again without token
+      if (withAuth && (err?.response?.status === 401 || err?.response?.status === 403)) {
+        return fetchProducts(false);
+      }
+      console.error("Failed to load products for menu", err);
+      setMenuError("Couldn't load categories");
+      setProducts([]);
+    } finally {
+      setLoadingMenu(false);
+    }
+  };
+
+  // Try with auth only if you really need it; otherwise call fetchProducts(false)
+  fetchProducts(false); // public fetch by default
+}, []);
+
+  // Build menu structure: [{ id, label: main, items: [{label: sub}] }]
+  const dynamicMenuItems = useMemo(() => {
+    const byMain = new Map();
+    for (const p of products) {
+      const main = (p.main_category || "").trim();
+      const sub = (p.sub_category || "").trim();
+      if (!main) continue;
+
+      if (!byMain.has(main)) byMain.set(main, new Set());
+      if (sub) byMain.get(main).add(sub);
+    }
+
+    const items = [];
+    for (const [main, subsSet] of byMain.entries()) {
+      const subs = Array.from(subsSet).sort((a, b) => a.localeCompare(b));
+      items.push({
+        id: slugify(main),
+        icon: Grid3X3, // default icon for dynamic categories
+        label: main,
+        hasDropdown: subs.length > 0,
+        items: subs.map((s) => ({ icon: Grid3X3, label: s })), // simple default icon
+      });
+    }
+
+    // Sort main categories alphabetically for a stable UI
+    items.sort((a, b) => a.label.localeCompare(b.label));
+    return items;
+  }, [products]);
 
   // --- login status checker ---
   useEffect(() => {
@@ -131,104 +208,6 @@ function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, [isMobileMenuOpen]);
 
-  // ---- Menu Items with valid Lucide icons ----
-  const menuItems = [
-    {
-      id: "mens",
-      icon: Shirt,
-      label: "Men's Wear",
-      hasDropdown: true,
-      items: [
-        { icon: Shirt, label: "Shirt" },
-        { icon: Zap, label: "T-Shirt" },
-        { icon: Users, label: "Jeans" },
-        { icon: Package, label: "Cotton Pant" },
-        { icon: Footprints, label: "Footwear" },
-        { icon: ShoppingBag, label: "Co-ords" },
-        { icon: Watch, label: "Watches" },
-        { icon: Package, label: "Track" },
-        { icon: GraduationCap, label: "Caps" },
-        { icon: Diamond, label: "Jewellery" },
-        { icon: Glasses, label: "Sunglasses" },
-        { icon: Wallet, label: "Wallets" },
-        { icon: Gift, label: "Combo set" },
-      ],
-    },
-    {
-      id: "kidsboys",
-      icon: Baby,
-      label: "Kids and Boys",
-      hasDropdown: true,
-      items: [
-        { icon: Shirt, label: "Shirt" },
-        { icon: Package, label: "Pants" },
-        { icon: Zap, label: "T-shirt" },
-        { icon: Users, label: "Jeans" },
-        { icon: ShoppingBag, label: "Co-ords" },
-        { icon: Gift, label: "Combo set" },
-        { icon: Package, label: "Track" },
-        { icon: Package, label: "Shorts" },
-        { icon: Footprints, label: "Footwear" },
-        { icon: Package, label: "Belt" },
-        { icon: GraduationCap, label: "Cap" },
-        { icon: Glasses, label: "Sunglasses" },
-        { icon: Crown, label: "Suit" },
-        { icon: Crown, label: "Sherwani" },
-      ],
-    },
-    {
-      id: "unisex",
-      icon: Smile,
-      label: "Unisex",
-      hasDropdown: true,
-      items: [
-        { icon: Shirt, label: "Shirt" },
-        { icon: Zap, label: "T-shirt" },
-        { icon: Users, label: "Jeans" },
-        { icon: Footprints, label: "Footwear" },
-        { icon: ShoppingBag, label: "Co-ords" },
-        { icon: Package, label: "Track" },
-        { icon: Watch, label: "Watch" },
-        { icon: GraduationCap, label: "Cap" },
-        { icon: Glasses, label: "Sunglasses" },
-        { icon: Diamond, label: "Jewellery" },
-      ],
-    },
-    {
-      id: "imported",
-      icon: Gem,
-      label: "Imported",
-      hasDropdown: true,
-      items: [
-        { icon: Shirt, label: "Shirt" },
-        { icon: Zap, label: "T-shirt" },
-        { icon: HardHat, label: "Jacket" },
-        { icon: Users, label: "Jeans" },
-        { icon: Diamond, label: "Jewellery" },
-        { icon: Glasses, label: "Sunglasses" },
-        { icon: Watch, label: "Watches" },
-        { icon: FlaskConical, label: "Perfume" },
-        { icon: Sparkle, label: "Lotion" },
-        { icon: GraduationCap, label: "Cap" },
-        { icon: Footprints, label: "Footwear" },
-        { icon: Package, label: "Crocs" },
-      ],
-    },
-    {
-      id: "weddinghub",
-      icon: Crown,
-      label: "Wedding Suit",
-      hasDropdown: true,
-      items: [
-        { icon: Crown, label: "Suit" },
-        { icon: Crown, label: "Sherwani" },
-        { icon: Crown, label: "Jodhpuri" },
-        { icon: Crown, label: "Kurthas" },
-        { icon: Crown, label: "Dress code" },
-      ],
-    },
-  ];
-
   return (
     <nav className="navbar">
       {/* ---- Top Section ---- */}
@@ -271,11 +250,13 @@ function Navbar() {
               )}
             </div>
           </div>
-          <div className="cart">
-            <span className="cart-count">0</span>
-            <ShoppingCart size={18} />
-            <span>Cart</span>
-          </div>
+          <div className="cart" onClick={() => navigate("/cart")}>
+  <div className="cart-icon">
+    <ShoppingCart size={22} />
+    {count > 0 && <span className="cart-badge">{count > 99 ? "99+" : count}</span>}
+  </div>
+  <span className="cart-label">Cart</span>
+</div>
         </div>
       </div>
 
@@ -296,60 +277,100 @@ function Navbar() {
         </button>
 
         <ul className={`menu-list ${isMobileMenuOpen ? "mobile-open" : ""}`}>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isMobileDropdownOpen = mobileDropdowns[item.id];
+          {loadingMenu ? (
+            <li className="menu-loading">Loading categories…</li>
+          ) : menuError ? (
+            <li className="menu-error">{menuError}</li>
+          ) : dynamicMenuItems.length === 0 ? (
+            <li className="menu-empty">No categories yet</li>
+          ) : (
+            dynamicMenuItems.map((item) => {
+              const Icon = item.icon || Grid3X3;
+              const isMobileDropdownOpen = mobileDropdowns[item.id];
 
-            return (
-              <li
-                key={item.id}
-                data-tooltip={item.label}
-                onClick={() => {
-                  if (window.innerWidth <= 768 && item.hasDropdown) handleMobileDropdown(item.id);
-                }}
-              >
-                <Icon size={16} />
-                <span>{item.label}</span>
-                {item.hasDropdown && (
-                  <>
-                    <ChevronDown size={14} className="dropdown-arrow desktop-only" />
-                    <ChevronRight
-                      size={14}
-                      className={`dropdown-arrow mobile-only ${isMobileDropdownOpen ? "rotated" : ""}`}
-                    />
-                  </>
-                )}
+              return (
+                <li
+                  key={item.id}
+                  data-tooltip={item.label}
+                  onClick={() => {
+                    // Mobile: tapping the main item toggles dropdown
+                    if (window.innerWidth <= 768 && item.hasDropdown) handleMobileDropdown(item.id);
+                  }}
+                >
+                  <Icon size={16} />
+                  {/* Clicking the main label (desktop) goes to the main category */}
+                  <span
+                    className="menu-main-label"
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      // Avoid triggering mobile dropdown toggle twice
+                      if (window.innerWidth <= 768) return;
+                      e.stopPropagation();
+                      goCategory(item.label);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (window.innerWidth <= 768) return;
+                        e.stopPropagation();
+                        goCategory(item.label);
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </span>
 
-                {item.hasDropdown && (
-                  <ul className="dropdown desktop-dropdown">
-                    {item.items.map((subItem, index) => {
-                      const SubIcon = subItem.icon;
-                      return (
-                        <li key={index}>
-                          <SubIcon size={14} />
+                  {item.hasDropdown && (
+                    <>
+                      <ChevronDown size={14} className="dropdown-arrow desktop-only" />
+                      <ChevronRight
+                        size={14}
+                        className={`dropdown-arrow mobile-only ${isMobileDropdownOpen ? "rotated" : ""}`}
+                      />
+                    </>
+                  )}
+
+                  {item.hasDropdown && (
+                    <ul className="dropdown desktop-dropdown">
+                      {item.items.map((subItem, index) => (
+                        <li
+                          key={index}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => handleSubItemClick(item.label, subItem.label, e)}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" ? handleSubItemClick(item.label, subItem.label, e) : null
+                          }
+                        >
+                          <Grid3X3 size={14} />
                           <span>{subItem.label}</span>
                         </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                      ))}
+                    </ul>
+                  )}
 
-                {item.hasDropdown && (
-                  <ul className={`dropdown mobile-dropdown ${isMobileDropdownOpen ? "active" : ""}`}>
-                    {item.items.map((subItem, index) => {
-                      const SubIcon = subItem.icon;
-                      return (
-                        <li key={index}>
-                          <SubIcon size={14} />
+                  {item.hasDropdown && (
+                    <ul className={`dropdown mobile-dropdown ${isMobileDropdownOpen ? "active" : ""}`}>
+                      {item.items.map((subItem, index) => (
+                        <li
+                          key={index}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => handleSubItemClick(item.label, subItem.label, e)}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" ? handleSubItemClick(item.label, subItem.label, e) : null
+                          }
+                        >
+                          <Grid3X3 size={14} />
                           <span>{subItem.label}</span>
                         </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })
+          )}
         </ul>
       </div>
     </nav>
