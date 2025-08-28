@@ -5,7 +5,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 import './ProductsList.scss';
 
-const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
 export default function ProductsList() {

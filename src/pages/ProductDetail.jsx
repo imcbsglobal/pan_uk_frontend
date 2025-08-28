@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import { FaWhatsapp, FaShoppingCart } from 'react-icons/fa';
 import './ProductDetail.scss';
 
-const apiBase = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+const apiBase = import.meta.env?.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
 // ------------- Safe storage helpers -------------

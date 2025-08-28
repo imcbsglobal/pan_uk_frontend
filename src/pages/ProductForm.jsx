@@ -6,7 +6,7 @@ import './ProductForm.scss';
 import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_URL || 'https://panukonline.com',
 });
 
 export default function ProductForm() {
