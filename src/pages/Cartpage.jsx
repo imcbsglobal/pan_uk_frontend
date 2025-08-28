@@ -2,6 +2,31 @@ import { useCart } from '@/context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import './Cartpage.scss';
 
+// If you use VITE_API_URL like the other pages:
+const apiBase = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+
+function normalizeImageUrl(url) {
+  if (!url) return '';
+  if (typeof url !== 'string') return '';
+  if (url.startsWith('http')) return url;
+  // handle relative paths saved like "/media/xyz.jpg"
+  return `${apiBase}${url}`;
+}
+
+function resolveItemImage(item) {
+  // 1) preferred: item.image (how ProductDetail/CategoryPage save it)
+  if (item?.image) return normalizeImageUrl(item.image);
+  // 2) legacy: item.img
+  if (item?.img) return normalizeImageUrl(item.img);
+  // 3) if your cart context kept the original product object:
+  const first = item?.images?.[0];
+  if (first) {
+    const url = first.url || first.image;
+    if (url) return normalizeImageUrl(url);
+  }
+  return '';
+}
+
 export default function Cart() {
   const { items, setQty, removeItem, clear, subtotal } = useCart();
   const navigate = useNavigate();
@@ -13,74 +38,50 @@ export default function Cart() {
     }
 
     try {
-      // Create a shorter, cleaner message format
       let message = `🛍️ NEW ORDER REQUEST\n\n`;
-      
-      // Add each item
       items.forEach((item, index) => {
         const itemTotal = (item.price * item.qty).toFixed(2);
         message += `${index + 1}. ${item.name}\n`;
         message += `   Qty: ${item.qty} x ₹${item.price.toFixed(2)} = ₹${itemTotal}\n`;
-        if (item.img) {
-          message += `   Image: ${item.img}\n`;
+        const imgUrl = resolveItemImage(item);
+        if (imgUrl) {
+          message += `   Image: ${imgUrl}\n`;
         }
         message += '\n';
       });
-      
-      // Add summary
+
       message += `💰 ORDER SUMMARY:\n`;
       message += `Total Items: ${items.length}\n`;
-      message += `Total Qty: ${items.reduce((sum, item) => sum + item.qty, 0)}\n`;
+      message += `Total Qty: ${items.reduce((s, it) => s + it.qty, 0)}\n`;
       message += `Subtotal: ₹${subtotal.toFixed(2)}\n\n`;
       message += `Please confirm this order. Thank you!`;
-      
-      // Check message length
+
       if (message.length > 2000) {
-        // If too long, create a shorter version
         message = `🛍️ NEW ORDER\n\n`;
-        items.forEach((item, index) => {
-          message += `${index + 1}. ${item.name} x${item.qty} = ₹${(item.price * item.qty).toFixed(2)}\n`;
+        items.forEach((item, idx) => {
+          message += `${idx + 1}. ${item.name} x${item.qty} = ₹${(item.price * item.qty).toFixed(2)}\n`;
         });
         message += `\nTotal: ₹${subtotal.toFixed(2)}\nPlease confirm!`;
       }
-      
-      console.log('Message:', message);
-      console.log('Message length:', message.length);
-      
-      // Encode for URL
-      const encodedMessage = encodeURIComponent(message);
-      
-      // Replace with your actual WhatsApp number (country code + number, no + sign)
-      const phoneNumber = '918129139506'; 
-      
-      // Create WhatsApp URL
-      const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-      
-      console.log('WhatsApp URL:', whatsappURL);
-      
-      // Try to open WhatsApp
+
+      const encoded = encodeURIComponent(message);
+      const phoneNumber = '918129139506';
+      const whatsappURL = `https://wa.me/${phoneNumber}?text=${encoded}`;
       const opened = window.open(whatsappURL, '_blank');
-      
+
       if (!opened) {
-        // Fallback: copy to clipboard
         navigator.clipboard.writeText(message).then(() => {
           alert('WhatsApp could not be opened. Message copied to clipboard. Please paste it in WhatsApp manually.');
         }).catch(() => {
           alert('Please check if WhatsApp is installed or try again.');
         });
       }
-      
     } catch (error) {
       console.error('WhatsApp send error:', error);
-      
-      // Simple fallback message
-      const simpleMessage = `Order from website: ${items.length} items, Total: ₹${subtotal.toFixed(2)}`;
-      const fallbackURL = `https://wa.me/918129139506?text=${encodeURIComponent(simpleMessage)}`;
-      
+      const simple = `Order from website: ${items.length} items, Total: ₹${subtotal.toFixed(2)}`;
+      const fallbackURL = `https://wa.me/918129139506?text=${encodeURIComponent(simple)}`;
       const opened = window.open(fallbackURL, '_blank');
-      if (!opened) {
-        alert('Error sending to WhatsApp. Please try again or contact us directly.');
-      }
+      if (!opened) alert('Error sending to WhatsApp. Please try again or contact us directly.');
     }
   };
 
@@ -98,28 +99,38 @@ export default function Cart() {
       <h1>Your Cart</h1>
 
       <div className="cart-table">
-        {items.map(item => (
-          <div className="cart-row" key={item.id}>
-            <img className="cart-img" src={item.img || 'https://via.placeholder.com/80'} alt={item.name}/>
-            <div className="cart-name">{item.name}</div>
-
-            <div className="cart-qty">
-              <button onClick={() => setQty(item.id, item.qty - 1)}>-</button>
-              <input
-                type="number"
-                min="1"
-                value={item.qty}
-                onChange={(e) => setQty(item.id, Number(e.target.value)||1)}
+        {items.map(item => {
+          const imgSrc = resolveItemImage(item) || 'https://via.placeholder.com/80';
+          const key = item.key || item.id; // be resilient if your context uses composite keys
+          return (
+            <div className="cart-row" key={key}>
+              <img
+                className="cart-img"
+                src={imgSrc}
+                alt={item.name}
+                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/80'; }}
               />
-              <button onClick={() => setQty(item.id, item.qty + 1)}>+</button>
+
+              <div className="cart-name">{item.name}</div>
+
+              <div className="cart-qty">
+                <button onClick={() => setQty(item.id, Math.max(1, item.qty - 1))}>-</button>
+                <input
+                  type="number"
+                  min="1"
+                  value={item.qty}
+                  onChange={(e) => setQty(item.id, Math.max(1, Number(e.target.value) || 1))}
+                />
+                <button onClick={() => setQty(item.id, item.qty + 1)}>+</button>
+              </div>
+
+              <div className="cart-price">₹ {item.price.toFixed(2)}</div>
+              <div className="cart-line">₹ {(item.price * item.qty).toFixed(2)}</div>
+
+              <button className="cart-remove" onClick={() => removeItem(item.id)}>Remove</button>
             </div>
-
-            <div className="cart-price">₹ {item.price.toFixed(2)}</div>
-            <div className="cart-line">₹ {(item.price * item.qty).toFixed(2)}</div>
-
-            <button className="cart-remove" onClick={() => removeItem(item.id)}>Remove</button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="cart-summary">

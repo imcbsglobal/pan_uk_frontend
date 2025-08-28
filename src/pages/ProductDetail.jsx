@@ -73,7 +73,7 @@ export default function ProductDetail() {
   useEffect(() => {
     setLoading(true);
     setErr(null);
-    const token = localStorage.getItem('access');
+    const token = hasLS ? localStorage.getItem('access') : null;
     api
       .get(`/api/products/${id}/`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -124,24 +124,33 @@ export default function ProductDetail() {
   const whatsappHref = useMemo(() => {
     const title = p?.name ? `Inquiry about: ${p.name}` : 'Product inquiry';
     const modelLine = p?.model_name ? `\nModel: ${p.model_name}` : '';
-    const cottonProvided = p?.cotton_percentage !== null && p?.cotton_percentage !== undefined && p?.cotton_percentage !== '';
+    const cottonProvided =
+      p?.cotton_percentage !== null &&
+      p?.cotton_percentage !== undefined &&
+      p?.cotton_percentage !== '';
     const cottonLine = cottonProvided ? `\nCotton: ${p.cotton_percentage}%` : '';
     const price = (p?.price ?? '') !== '' ? `\nPrice: ₹${Number(p.price).toFixed(2)}` : '';
     const sku = p?.id ? `\nProduct ID: ${p.id}` : '';
-    const link = typeof window !== 'undefined' ? `\nLink: ${window.location.href}` : '';
+    const link =
+      typeof window !== 'undefined' ? `\nLink: ${window.location.href}` : '';
     const imageLine = mainImage ? `\nImage: ${mainImage}` : '';
-    const txt = encodeURIComponent(`${title}${modelLine}${cottonLine}${price}${sku}${imageLine}${link}`);
+    const txt = encodeURIComponent(
+      `${title}${modelLine}${cottonLine}${price}${sku}${imageLine}${link}`
+    );
     return `https://wa.me/919061947005?text=${txt}`;
   }, [p, mainImage]);
+
+  // Compose the cart key once
+  function cartKey(prod) {
+    return `${prod?.id || 'noid'}|${prod?.color || ''}|${prod?.size || ''}`;
+  }
 
   // --- CART: add to storage with verification ---
   const addToCart = () => {
     if (!p) {
       setAddedMsg('Cannot add: product not loaded');
       return;
-      navigate(0);
     }
-    
 
     const key = `${p.id || 'noid'}|${p.color || ''}|${p.size || ''}`;
     const baseItem = {
@@ -155,51 +164,118 @@ export default function ProductDetail() {
       weight: p.weight || null,
       brand: p.brand || null,
       model_name: p.model_name || null,
-      cotton_percentage: (p.cotton_percentage !== null && p.cotton_percentage !== undefined) ? p.cotton_percentage : null,
+      cotton_percentage:
+        p.cotton_percentage !== null && p.cotton_percentage !== undefined
+          ? p.cotton_percentage
+          : null,
       qty: 1,
     };
 
-    // 1) read existing (both keys)
+    // read existing (both keys)
     let cart = readJSON('cart', []);
     let cartItems = readJSON('cartItems', []); // compatibility with other pages
 
-    // 2) upsert into both arrays
+    // upsert into both arrays
     const upsert = (arr) => {
       const idx = arr.findIndex((c) => c.key === key);
       if (idx !== -1) {
         const next = [...arr];
         next[idx] = { ...next[idx], qty: Number(next[idx].qty || 0) + 1 };
         return next;
-        } else {
+      } else {
         return [...arr, baseItem];
       }
     };
     const nextCart = upsert(cart);
     const nextCartItems = upsert(cartItems);
 
-    // 3) write both keys
     const ok1 = writeJSON('cart', nextCart);
     const ok2 = writeJSON('cartItems', nextCartItems);
 
-    // 4) re-read & verify
     const verifyCart = readJSON('cart', []);
     const verified = verifyCart.some((c) => c.key === key);
 
     if (ok1 && ok2 && verified) {
-      setInCart(true);
+      setInCart(true); // instantly flip to "Remove from Cart"
       setAddedMsg('Added to cart ✔');
       try {
-        // Let other components listen: window.addEventListener('cart:updated', ...)
-        window.dispatchEvent(new CustomEvent('cart:updated', { detail: { key, qtyAdded: 1 } }));
+        window.dispatchEvent(
+          new CustomEvent('cart:updated', { detail: { key, qtyAdded: 1 } })
+        );
       } catch {}
     } else {
-      console.warn('Add to cart failed: storage write/verify issue', { ok1, ok2, verified });
+      console.warn('Add to cart failed: storage write/verify issue', {
+        ok1, ok2, verified,
+      });
       setAddedMsg('Could not add to cart. Please check storage permissions.');
     }
 
     window.clearTimeout(window.__pd_toast);
     window.__pd_toast = window.setTimeout(() => setAddedMsg(''), 2500);
   };
+
+  // --- CART: remove ENTIRE ITEM (not decrement) ---
+  const removeFromCart = () => {
+    if (!p) {
+      setAddedMsg('Cannot remove: product not loaded');
+      return;
+    }
+    const key = cartKey(p);
+
+    // read both keys
+    let cart = readJSON('cart', []);
+    let cartItems = readJSON('cartItems', []);
+
+    // qty to subtract for listeners
+    const current = cart.find((c) => c.key === key);
+    const qtyRemoved = Number(current?.qty || 1);
+
+    // remove the item completely
+    const nextCart = cart.filter((c) => c.key !== key);
+    const nextCartItems = cartItems.filter((c) => c.key !== key);
+
+    const ok1 = writeJSON('cart', nextCart);
+    const ok2 = writeJSON('cartItems', nextCartItems);
+
+    if (ok1 && ok2) {
+      setInCart(false); // instantly flip back to "Add to Cart"
+      setAddedMsg('Removed from cart ✔');
+      try {
+        window.dispatchEvent(
+          new CustomEvent('cart:updated', { detail: { key, qtyRemoved } })
+        );
+      } catch {}
+    } else {
+      setAddedMsg('Could not remove from cart. Please check storage permissions.');
+    }
+
+    window.clearTimeout(window.__pd_toast);
+    window.__pd_toast = window.setTimeout(() => setAddedMsg(''), 2500);
+  };
+
+  // Keep `inCart` synced if cart changes elsewhere
+  useEffect(() => {
+    if (!p) return;
+    const key = cartKey(p);
+
+    const recompute = () => {
+      const cart = readJSON('cart', []);
+      setInCart(cart.some((c) => c.key === key));
+    };
+
+    const onUpdated = () => recompute();
+    const onStorage = (e) => {
+      if (e.key === 'cart') recompute();
+    };
+
+    window.addEventListener('cart:updated', onUpdated);
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('cart:updated', onUpdated);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [p]);
 
   if (loading) {
     return (
@@ -306,10 +382,10 @@ export default function ProductDetail() {
 
               <button
                 className={`pd-btn ${inCart ? 'pd-btn--success' : 'pd-btn--primary'}`}
-                onClick={addToCart}
+                onClick={inCart ? removeFromCart : addToCart}
               >
                 <FaShoppingCart size={16} />
-                <span>{inCart ? 'Added to Cart' : 'Add to Cart'}</span>
+                <span>{inCart ? 'Remove from Cart' : 'Add to Cart'}</span>
               </button>
 
               <button className="pd-btn pd-btn--ghost" onClick={() => navigate('/cart')}>

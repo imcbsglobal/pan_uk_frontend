@@ -1,8 +1,8 @@
 // src/components/Navbar.jsx
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
-
+// NOTE: not relying on useCart context for the badge anymore.
+// import { useCart } from "../context/CartContext";
 
 import {
   Search,
@@ -27,6 +27,19 @@ function slugify(txt = "") {
 const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const api = axios.create({ baseURL: apiBase });
 
+// ------- cart helpers -------
+function readCart() {
+  try {
+    const raw = localStorage.getItem("cart");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+function calcCartCount(items) {
+  return items.reduce((sum, item) => sum + Number(item?.qty || 0), 0);
+}
+
 function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileDropdowns, setMobileDropdowns] = useState({});
@@ -36,12 +49,13 @@ function Navbar() {
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [menuError, setMenuError] = useState(null);
 
+  const [cartCount, setCartCount] = useState(0); // <-- local badge count
+
   const menuRef = useRef(null);
   const navigate = useNavigate();
-  const { count } = useCart();
+  // const { count } = useCart(); // not used for badge
 
-  // Navigate to category page.
-  // `raw` is preserved in state so CategoryPage can do category-aware filtering.
+  // Navigate to category page
   const goCategory = (name) => {
     navigate(`/category/${slugify(name)}`, { state: { raw: name } });
   };
@@ -49,7 +63,7 @@ function Navbar() {
   // When clicking a subcategory, include both the parent + sub in the name
   const handleSubItemClick = (mainLabel, subLabel, e) => {
     if (e) e.stopPropagation();
-    const combined = `${mainLabel} ${subLabel}`; // e.g., "Men's Wear Jeans"
+    const combined = `${mainLabel} ${subLabel}`;
     goCategory(combined);
     setIsMobileMenuOpen(false);
     setMobileDropdowns({});
@@ -57,38 +71,38 @@ function Navbar() {
 
   // --- Fetch products to build the menu dynamically ---
   useEffect(() => {
-  const token = localStorage.getItem("access");
-  setLoadingMenu(true);
-  setMenuError(null);
+    const token = localStorage.getItem("access");
+    setLoadingMenu(true);
+    setMenuError(null);
 
-  const fetchProducts = async (withAuth) => {
-    try {
-      const res = await api.get("/api/products/", {
-        headers: withAuth && token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = res.data;
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.results)
-        ? data.results
-        : [];
-      setProducts(list);
-    } catch (err) {
-      // If unauthorized with token, try again without token
-      if (withAuth && (err?.response?.status === 401 || err?.response?.status === 403)) {
-        return fetchProducts(false);
+    const fetchProducts = async (withAuth) => {
+      try {
+        const res = await api.get("/api/products/", {
+          headers: withAuth && token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = res.data;
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.results)
+          ? data.results
+          : [];
+        setProducts(list);
+      } catch (err) {
+        // If unauthorized with token, try again without token
+        if (withAuth && (err?.response?.status === 401 || err?.response?.status === 403)) {
+          return fetchProducts(false);
+        }
+        console.error("Failed to load products for menu", err);
+        setMenuError("Couldn't load categories");
+        setProducts([]);
+      } finally {
+        setLoadingMenu(false);
       }
-      console.error("Failed to load products for menu", err);
-      setMenuError("Couldn't load categories");
-      setProducts([]);
-    } finally {
-      setLoadingMenu(false);
-    }
-  };
+    };
 
-  // Try with auth only if you really need it; otherwise call fetchProducts(false)
-  fetchProducts(false); // public fetch by default
-}, []);
+    // public fetch by default
+    fetchProducts(false);
+  }, []);
 
   // Build menu structure: [{ id, label: main, items: [{label: sub}] }]
   const dynamicMenuItems = useMemo(() => {
@@ -107,14 +121,13 @@ function Navbar() {
       const subs = Array.from(subsSet).sort((a, b) => a.localeCompare(b));
       items.push({
         id: slugify(main),
-        icon: Grid3X3, // default icon for dynamic categories
+        icon: Grid3X3,
         label: main,
         hasDropdown: subs.length > 0,
-        items: subs.map((s) => ({ icon: Grid3X3, label: s })), // simple default icon
+        items: subs.map((s) => ({ icon: Grid3X3, label: s })),
       });
     }
 
-    // Sort main categories alphabetically for a stable UI
     items.sort((a, b) => a.label.localeCompare(b.label));
     return items;
   }, [products]);
@@ -150,6 +163,41 @@ function Navbar() {
     return () => {
       window.removeEventListener("storage", checkLoginStatus);
       clearInterval(interval);
+    };
+  }, []);
+
+  // --- Cart badge: recompute on events & visibility ---
+  useEffect(() => {
+    const recompute = () => setCartCount(calcCartCount(readCart()));
+
+    // initial
+    recompute();
+
+    // when ProductDetail (or others) dispatches updates
+    const onCartUpdated = (e) => {
+      // You can optionally use e.detail.qtyAdded/qtyRemoved for incremental updates,
+      // but recomputing is simplest and robust.
+      recompute();
+    };
+
+    // cross-tab/localStorage changes
+    const onStorage = (e) => {
+      if (e.key === "cart") recompute();
+    };
+
+    // if user returns to tab
+    const onVisibility = () => {
+      if (!document.hidden) recompute();
+    };
+
+    window.addEventListener("cart:updated", onCartUpdated);
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("cart:updated", onCartUpdated);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
@@ -250,13 +298,18 @@ function Navbar() {
               )}
             </div>
           </div>
+
           <div className="cart" onClick={() => navigate("/cart")}>
-  <div className="cart-icon">
-    <ShoppingCart size={22} />
-    {count > 0 && <span className="cart-badge">{count > 99 ? "99+" : count}</span>}
-  </div>
-  <span className="cart-label">Cart</span>
-</div>
+            <div className="cart-icon">
+              <ShoppingCart size={22} />
+              {cartCount > 0 && (
+                <span className="cart-badge">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </div>
+            <span className="cart-label">Cart</span>
+          </div>
         </div>
       </div>
 
@@ -293,18 +346,15 @@ function Navbar() {
                   key={item.id}
                   data-tooltip={item.label}
                   onClick={() => {
-                    // Mobile: tapping the main item toggles dropdown
                     if (window.innerWidth <= 768 && item.hasDropdown) handleMobileDropdown(item.id);
                   }}
                 >
                   <Icon size={16} />
-                  {/* Clicking the main label (desktop) goes to the main category */}
                   <span
                     className="menu-main-label"
                     role="button"
                     tabIndex={0}
                     onClick={(e) => {
-                      // Avoid triggering mobile dropdown toggle twice
                       if (window.innerWidth <= 768) return;
                       e.stopPropagation();
                       goCategory(item.label);
