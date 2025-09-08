@@ -182,12 +182,18 @@
         color: #f2b307;
       }
 
-      .cart-count {
+      .cart-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .cart-badge {
         position: absolute;
         top: -8px;
-        left: -8px;
+        right: -8px;
         background: #f2b307;
-        color: white;
+        color: rgb(0, 0, 0);
         padding: 2px 6px;
         border-radius: 50%;
         font-size: 11px;
@@ -202,15 +208,15 @@
     }
   }
 
-  /* -------- Menus -------- */
+  /* -------- Menu Section -------- */
   .menu-row {
     position: relative;
     width: 100%;
 
     .mobile-menu-toggle {
       display: none;
-      background: none;
-      border: none;
+      background: #f8f9fa;
+      border: 1px solid #e5e5e5;
       cursor: pointer;
       padding: 12px 16px;
       color: #333;
@@ -219,12 +225,11 @@
       align-items: center;
       justify-content: center;
       width: 100%;
-      border: 1px solid #e5e5e5;
       font-weight: 500;
       font-size: 14px;
 
       &:hover {
-        background: #f8f9fa;
+        background: #f2f2f2;
         border-color: #f2b307;
         color: #f2b307;
       }
@@ -275,17 +280,25 @@
           color: #666;
         }
 
+        .menu-main-label {
+          cursor: pointer;
+        }
+
         .dropdown-arrow {
           margin-left: auto;
           transition: transform 0.2s ease;
           
-          &.mobile-only.rotated {
-            transform: rotate(90deg);
+          &.mobile-only {
+            display: none;
+            
+            &.rotated {
+              transform: rotate(90deg);
+            }
           }
-        }
 
-        span {
-          transition: color 0.2s ease;
+          &.desktop-only {
+            display: block;
+          }
         }
 
         .dropdown {
@@ -316,10 +329,6 @@
               display: flex;
               align-items: center;
               gap: 8px;
-
-              .dropdown-arrow {
-                display: none;
-              }
 
               &:hover {
                 background: #f2b307;
@@ -353,12 +362,14 @@
   }
 
   /* -------- Responsive Design -------- */
+  
+  /* Large screens - show icons only */
   @media (max-width: 1200px) {
     .menu-row .menu-list {
       gap: 20px;
 
       li {
-        span {
+        .menu-main-label {
           display: none;
         }
         
@@ -377,6 +388,7 @@
     }
   }
 
+  /* Tablet and Mobile */
   @media (max-width: 768px) {
     padding: 16px 20px;
     
@@ -436,25 +448,12 @@
           }
         }
       }
-
-      .cart {
-        span:not(.cart-count) {
-          font-size: 13px;
-        }
-      }
     }
 
     .menu-row {
       .mobile-menu-toggle {
         display: flex;
         margin-bottom: 16px;
-        background: #f8f9fa;
-        border: 1px solid #e5e5e5;
-        
-        &:hover {
-          background: #f2f2f2;
-          border-color: #d0d0d0;
-        }
       }
 
       .menu-list {
@@ -482,23 +481,6 @@
           opacity: 1;
           transform: translateY(0);
           overflow-y: auto;
-          
-          &::-webkit-scrollbar {
-            width: 6px;
-          }
-          
-          &::-webkit-scrollbar-track {
-            background: #f1f1f1;
-          }
-          
-          &::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-          }
-          
-          &::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
-          }
         }
 
         li {
@@ -534,7 +516,7 @@
             }
           }
 
-          span {
+          .menu-main-label {
             display: block;
             font-size: 15px;
             font-weight: 500;
@@ -578,6 +560,7 @@
               overflow: hidden;
               opacity: 0;
               transition: all 0.3s ease;
+              display: block;
 
               &.active {
                 max-height: 200px;
@@ -619,6 +602,7 @@
     }
   }
 
+  /* Small Mobile */
   @media (max-width: 480px) {
     padding: 12px 16px;
 
@@ -689,7 +673,7 @@
               font-size: 11px;
               
               span {
-                display: none; // Hide "Logout" text on very small screens, just show icon
+                display: none;
               }
             }
           }
@@ -700,23 +684,6 @@
         flex-direction: column;
         align-items: center;
         gap: 4px;
-        
-        span:not(.cart-count) {
-          font-size: 12px;
-          order: 1;
-        }
-        
-        svg {
-          order: 0;
-        }
-
-        .cart-count {
-          min-width: 18px;
-          height: 18px;
-          font-size: 10px;
-          top: -6px;
-          left: -6px;
-        }
       }
     }
 
@@ -727,30 +694,12 @@
         font-weight: 600;
         border-radius: 10px;
         margin-bottom: 12px;
-        background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-        border: 1px solid #dee2e6;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        
-        &:hover {
-          background: linear-gradient(145deg, #e9ecef, #dee2e6);
-          border-color: #f2b307;
-          color: #f2b307;
-          box-shadow: 0 4px 8px rgba(242, 179, 7, 0.2);
-        }
-        
-        &:active {
-          background: linear-gradient(145deg, #f2b307, #e6a406);
-          color: white;
-          border-color: #f2b307;
-          transform: translateY(1px);
-        }
       }
 
       .menu-list {
         left: -16px;
         right: -16px;
         border-radius: 0 0 16px 16px;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 
         &.mobile-open {
           max-height: 65vh;
@@ -759,7 +708,7 @@
         li {
           padding: 18px 24px;
           
-          span {
+          .menu-main-label {
             font-size: 16px;
             font-weight: 500;
           }
@@ -771,23 +720,24 @@
           
           &:hover {
             transform: translateX(8px);
-            box-shadow: inset 4px 0 0 rgba(255, 255, 255, 0.3);
           }
 
           .dropdown {
-            margin-top: 16px;
-            padding: 12px 0;
-            
-            li {
-              padding: 14px 24px 14px 52px;
+            &.mobile-dropdown {
+              margin-top: 16px;
+              padding: 12px 0;
               
-              span {
-                font-size: 15px;
-              }
-              
-              svg {
-                width: 18px;
-                height: 18px;
+              li {
+                padding: 14px 24px 14px 52px;
+                
+                .menu-main-label {
+                  font-size: 15px;
+                }
+                
+                svg {
+                  width: 18px;
+                  height: 18px;
+                }
               }
             }
           }
@@ -796,6 +746,7 @@
     }
   }
 
+  /* Extra Small Mobile */
   @media (max-width: 375px) {
     padding: 10px 12px;
     
@@ -824,11 +775,62 @@
         li {
           padding: 16px 20px;
           
-          span {
+          .menu-main-label {
             font-size: 15px;
           }
         }
       }
     }
   }
+}
+
+
+/* ---- Cart icon & badge placement ---- */
+.navbar .cart {
+  cursor: pointer;
+}
+
+.navbar .cart-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;          /* stable box to anchor the badge */
+  height: 28px;
+  line-height: 0;       /* avoid inline spacing affecting layout */
+  overflow: visible;    /* let the badge render outside the box */
+}
+
+/* size/color the SVG explicitly so it's always visible */
+.navbar .cart-icon .cart-svg {
+  width: 22px;
+  height: 22px;
+  color: #222;          /* ensure contrast with header background */
+  flex: 0 0 auto;
+}
+
+/* Put the badge OUTSIDE the corner */
+.navbar .cart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);  /* shifts outwards diagonally */
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+
+  background: #ffc107; /* yellow */
+  color: #111;
+  box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  pointer-events: none; /* clicks go to the cart */
+  z-index: 2;           /* above the svg but not covering it */
 }

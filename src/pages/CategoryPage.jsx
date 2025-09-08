@@ -8,48 +8,44 @@ import './Home.scss';
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
+// --- Cart persistence helpers (server sync) ---
+const hasLS = typeof window !== 'undefined' && !!window.localStorage;
+const CART_SERVER_MAP = 'cartServerMap';
+const getToken = () => (hasLS ? localStorage.getItem('access') : null);
+const getIdMap = () => {
+  try { return JSON.parse(localStorage.getItem(CART_SERVER_MAP) || '{}'); } catch { return {}; }
+};
+const setIdMap = (m) => { try { localStorage.setItem(CART_SERVER_MAP, JSON.stringify(m)); return true; } catch { return false; } };
+
 function deslugify(slug = '') {
   return slug.replace(/-/g, ' ');
 }
 function imgUrl(path) {
   if (!path) return '';
   if (typeof path === 'string' && path.startsWith('http')) return path;
-  return `${apiBase}${path}`;
+  const base = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+  return `${base}${path}`;
 }
 function getImageUrl(img) {
   if (!img) return '';
-  return img.url ? img.url : imgUrl(img.image);
+  if (typeof img === 'string') return imgUrl(img);
+  return img?.image ? imgUrl(img.image) : '';
 }
 
-// ---------- Safe storage helpers (same pattern as ProductDetail) ----------
-const memStore = {};
-function canUseLocalStorage() {
-  try {
-    if (typeof window === 'undefined' || !('localStorage' in window)) return false;
-    const k = '__ls_test__';
-    window.localStorage.setItem(k, '1');
-    window.localStorage.removeItem(k);
-    return true;
-  } catch {
-    return false;
-  }
-}
-const hasLS = canUseLocalStorage();
-
+// Safe JSON helpers
 function readJSON(key, fallback) {
+  if (!hasLS) return fallback;
   try {
-    const raw = hasLS ? window.localStorage.getItem(key) : memStore[key];
-    if (!raw) return fallback;
-    return JSON.parse(raw);
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
   } catch {
     return fallback;
   }
 }
 function writeJSON(key, value) {
+  if (!hasLS) return false;
   try {
-    const s = JSON.stringify(value);
-    if (hasLS) window.localStorage.setItem(key, s);
-    memStore[key] = s;
+    localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch {
     return false;
@@ -85,31 +81,28 @@ export default function CategoryPage() {
   // Toast message for add/remove feedback (simple, single-toast for the page)
   const [toast, setToast] = useState('');
 
-  const showToast = (msg) => {
+  const showToast = useCallback((msg) => {
     setToast(msg);
-    window.clearTimeout(window.__cat_toast);
-    window.__cat_toast = window.setTimeout(() => setToast(''), 2000);
-  };
+    setTimeout(() => setToast(''), 2000);
+  }, []);
 
-  // Fetch products
+  // Fetch category items
   useEffect(() => {
-    const token = hasLS ? localStorage.getItem('access') : null;
     setLoading(true);
+    const token = hasLS ? localStorage.getItem('access') : null;
     api
       .get('/api/products/', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        params: { search: categoryName },
       })
       .then((res) => {
-        const data = res.data;
-        // support both plain array and paginated {results:[]}
-        const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+        const list = Array.isArray(res.data) ? res.data : res.data?.results || [];
         setItems(list);
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [categoryName]);
 
-  // Build a quick lookup set of cart keys from storage
   const recomputeCartKeys = useCallback(() => {
     const cart = readJSON('cart', []);
     setCartKeys(new Set(cart.map((c) => c.key)));
@@ -142,35 +135,26 @@ export default function CategoryPage() {
     const c = categoryName.trim().toLowerCase();
 
     return items.filter((p) => {
-      const main = p.main_category?.toLowerCase().trim();
-      const sub = p.sub_category?.toLowerCase().trim();
+      const main = (p.main_category || '').toLowerCase();
+      const sub = (p.sub_category || '').toLowerCase();
+      const [maybeMain, maybeSub] = c.split(' ').length > 1
+        ? [c.substring(0, c.lastIndexOf(' ')), c.substring(c.lastIndexOf(' ') + 1)]
+        : [c, ''];
 
-      if (main && sub && `${main} ${sub}` === c) return true; // full match
-      if (main === c) return true; // main-only
-      if (sub === c) return true; // sub-only
+      // If title contains both main and sub, require both to match
+      if (maybeMain && maybeSub) {
+        return main.includes(maybeMain) && sub.includes(maybeSub);
+      }
 
-      return false;
+      // If the string matches a known main category term, filter by main
+      if (['men', 'mens', "men's wear", 'kids', 'boys', 'kidsboys', 'unisex', 'imported', 'wedding', 'weddinghub'].some((k) => c.includes(k))) {
+        return main.includes(maybeMain);
+      }
+
+      // otherwise treat as sub-only search
+      return sub.includes(c);
     });
   }, [items, categoryName]);
-
-  const goProduct = (id) => navigate(`/product/${id}`);
-
-  // Build WhatsApp link similar to ProductDetail
-  const whatsappHref = (p, imageUrl) => {
-    const title = p?.name ? `Inquiry about: ${p.name}` : 'Product inquiry';
-    const modelLine = p?.model_name ? `\nModel: ${p.model_name}` : '';
-    const cottonProvided =
-      p?.cotton_percentage !== null &&
-      p?.cotton_percentage !== undefined &&
-      p?.cotton_percentage !== '';
-    const cottonLine = cottonProvided ? `\nCotton: ${p.cotton_percentage}%` : '';
-    const price = (p?.price ?? '') !== '' ? `\nPrice: ₹${Number(p.price).toFixed(2)}` : '';
-    const sku = p?.id ? `\nProduct ID: ${p.id}` : '';
-    const link = typeof window !== 'undefined' ? `\nLink: ${window.location.origin}/product/${p?.id}` : '';
-    const imageLine = imageUrl ? `\nImage: ${imageUrl}` : '';
-    const txt = encodeURIComponent(`${title}${modelLine}${cottonLine}${price}${sku}${imageLine}${link}`);
-    return `https://wa.me/919061947005?text=${txt}`;
-  };
 
   // --- ADD / REMOVE CART on the category cards (mirror logic from ProductDetail) ---
   const addToCart = (p, imageUrl) => {
@@ -222,6 +206,24 @@ export default function CategoryPage() {
       try {
         window.dispatchEvent(new CustomEvent('cart:updated', { detail: { key, qtyAdded: 1 } }));
       } catch {}
+
+      // ------ NEW: persist to server if JWT available ------
+      const token = getToken();
+      if (token && p?.id) {
+        api.post(
+          '/api/cart/items/',
+          { product_id: p.id, qty: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).then((res) => {
+          const serverItem = res?.data;
+          if (serverItem?.id) {
+            const map = getIdMap();
+            map[p.id] = serverItem.id;
+            setIdMap(map);
+          }
+        }).catch(() => {});
+      }
+      // ------------------------------------------------------
     } else {
       showToast('Could not add to cart.');
     }
@@ -252,6 +254,36 @@ export default function CategoryPage() {
       try {
         window.dispatchEvent(new CustomEvent('cart:updated', { detail: { key, qtyRemoved } }));
       } catch {}
+
+      // ------ NEW: remove on server if JWT available ------
+      const token = getToken();
+      if (token && p?.id) {
+        const map = getIdMap();
+        let itemId = map[p.id];
+
+        const doDelete = (id) => api.delete(`/api/cart/items/${id}/remove/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(() => {
+          // clear mapping if fully removed locally
+          const left = readJSON('cart', []).find((x) => x.id === p.id);
+          if (!left) {
+            const m = getIdMap();
+            delete m[p.id];
+            setIdMap(m);
+          }
+        }).catch(() => {});
+
+        if (itemId) {
+          doDelete(itemId);
+        } else {
+          api.get('/api/cart/', { headers: { Authorization: `Bearer ${token}` } })
+            .then((res) => {
+              const found = (res?.data?.items || []).find((it) => it?.product?.id === p.id);
+              if (found?.id) doDelete(found.id);
+            }).catch(() => {});
+        }
+      }
+      // ----------------------------------------------------
     } else {
       showToast('Could not remove from cart.');
     }
@@ -260,137 +292,107 @@ export default function CategoryPage() {
   return (
     <>
       <Navbar />
+      <div className="home-container">
+        <div className="home-header">
+          <h1 className="home-title">{categoryName}</h1>
+          {toast && <div className="home-toast">{toast}</div>}
+        </div>
 
-      <section className="products-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">{categoryName}</h2>
-            <p className="section-subtitle">Browse all products in this category</p>
-          </div>
+        {loading ? (
+          <div className="loading">Loading…</div>
+        ) : (
+          <div className="product-grid">
+            {filtered.map((p) => {
+              const key = cartKey(p);
+              const inCart = cartKeys.has(key);
+              const src = p.image ? imgUrl(p.image) : (p.images?.[0] ? getImageUrl(p.images[0]) : '');
 
-          {toast ? <div className="pd-toast" style={{ position: 'sticky', top: 10, zIndex: 3 }}>{toast}</div> : null}
+              return (
+                <div
+                  key={p.id || Math.random()}
+                  className="product-card"
+                  onClick={() => navigate(`/product/${p.id}`)}
+                >
+                  <div className="product-image">
+                    <img src={src} alt={p.name} loading="lazy" />
+                  </div>
 
-          <div className="products-grid">
-            {loading ? (
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p className="loading-text">Loading products...</p>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="no-products-message">
-                <h3>No products in this category yet.</h3>
-                <p>Check back soon for new arrivals!</p>
-              </div>
-            ) : (
-              filtered.map((p) => {
-                const first = p.images?.[0];
-                const src = first ? (first.url || imgUrl(first.image)) : '';
+                  <div className="product-info">
+                    <div className="product-title">{p.name}</div>
 
-                const key = cartKey(p);
-                const inCart = cartKeys.has(key);
-
-                return (
-                  <div className="product-card" key={p.id}>
-                    <div
-                      className="product-image"
-                      onClick={() => goProduct(p.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' ? goProduct(p.id) : null}
-                    >
-                      {src ? (
-                        <img
-                          src={src}
-                          alt={p.name}
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://via.placeholder.com/400x500?text=Image+Not+Found';
-                          }}
-                        />
-                      ) : (
-                        <img
-                          src="https://via.placeholder.com/400x500?text=No+Image"
-                          alt={p.name}
-                        />
+                    <div className="product-categories">
+                      {p.main_category && (
+                        <span className="category-tag main">{p.main_category}</span>
                       )}
-                      <div className="product-overlay">
-                        <button className="quick-view-btn" onClick={(e) => { e.stopPropagation(); goProduct(p.id); }}>
-                          View Details
-                        </button>
-                      </div>
+                      {p.sub_category && (
+                        <span className="category-tag sub">{p.sub_category}</span>
+                      )}
                     </div>
 
-                    <div className="product-info">
-                      <h3 className="product-title" title={p.name}>{p.name}</h3>
+                    <div className="product-price-section">
+                      <div className="product-price">₹ {Number(p.price ?? 0).toFixed(2)}</div>
+                    </div>
 
-                      <div className="product-categories">
-                        {p.main_category && (
-                          <span className="category-tag main">{p.main_category}</span>
-                        )}
-                        {p.sub_category && (
-                          <span className="category-tag sub">{p.sub_category}</span>
-                        )}
-                      </div>
+                    {/* Extra details like the Product Detail page */}
+                    <div className="product-meta">
+                      {p.model_name ? (
+                        <div className="meta-row">
+                          <span className="meta-label">Model</span>
+                          <span className="meta-value">{p.model_name}</span>
+                        </div>
+                      ) : null}
+                      {p.brand ? (
+                        <div className="meta-row">
+                          <span className="meta-label">Brand</span>
+                          <span className="meta-value">{p.brand}</span>
+                        </div>
+                      ) : null}
+                      {p.cotton_percentage !== null && p.cotton_percentage !== undefined ? (
+                        <div className="meta-row">
+                          <span className="meta-label">Cotton %</span>
+                          <span className="meta-value">{p.cotton_percentage}%</span>
+                        </div>
+                      ) : null}
+                      {p.color ? (
+                        <div className="meta-row">
+                          <span className="meta-label">Color</span>
+                          <span className="meta-value">{p.color}</span>
+                        </div>
+                      ) : null}
+                      {p.size ? (
+                        <div className="meta-row">
+                          <span className="meta-label">Size</span>
+                          <span className="meta-value">{p.size}</span>
+                        </div>
+                      ) : null}
+                    </div>
 
-                      <div className="product-price-section">
-                        <div className="product-price">₹ {Number(p.price ?? 0).toFixed(2)}</div>
-                      </div>
-
-                      {/* Extra details like the Product Detail page */}
-                      <div className="product-meta">
-                        {p.model_name ? (
-                          <div className="meta-row">
-                            <span className="meta-label">Model</span>
-                            <span className="meta-value">{p.model_name}</span>
-                          </div>
-                        ) : null}
-                        {(p.cotton_percentage !== null && p.cotton_percentage !== undefined && p.cotton_percentage !== '') ? (
-                          <div className="meta-row">
-                            <span className="meta-label">Cotton</span>
-                            <span className="meta-value">{p.cotton_percentage}%</span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {/* Action row */}
-                      <div className="product-actions">
-                        {/* <a
-                          className="pd-btn pd-btn--whatsapp"
-                          href={whatsappHref(p, src)}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
+                    <div className="product-actions" onClick={(e) => e.stopPropagation()}>
+                      {inCart ? (
+                        <button
+                          className="pd-btn pd-btn--success"
+                          onClick={(e) => { e.stopPropagation(); removeFromCart(p); }}
+                          title="Remove this item from cart"
                         >
-                          Enquire on WhatsApp
-                        </a> */}
-
-                        {inCart ? (
-                          <button
-                            className="pd-btn pd-btn--success"
-                            onClick={(e) => { e.stopPropagation(); removeFromCart(p); }}
-                            title="Remove this item from cart"
-                          >
-                            Remove from Cart
-                          </button>
-                        ) : (
-                          <button
-                            className="pd-btn pd-btn--primary"
-                            onClick={(e) => { e.stopPropagation(); addToCart(p, src); }}
-                            title="Add this item to cart"
-                          >
-                            Add to Cart
-                          </button>
-                        )}
-                      </div>
+                          Remove from Cart
+                        </button>
+                      ) : (
+                        <button
+                          className="pd-btn pd-btn--primary"
+                          onClick={(e) => { e.stopPropagation(); addToCart(p, src); }}
+                          title="Add this item to cart"
+                        >
+                          Add to Cart
+                        </button>
+                      )}
                     </div>
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })}
           </div>
-        </div>
-      </section>
-
+        )}
+      </div>
       <Footer />
     </>
   );

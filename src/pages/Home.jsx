@@ -4,11 +4,15 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useCart } from "../context/CartContext.jsx";
+import bannerVideo from "../assets/banner.mp4";
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
+/* --------------------------
+   Helper utilities
+   -------------------------- */
 function slugify(txt = '') {
   return String(txt).toLowerCase().replace(/\s+/g, '-');
 }
@@ -18,62 +22,84 @@ function imgUrl(path) {
   return `${apiBase}${path}`;
 }
 
-export default function Home() {
-  const navigate = useNavigate();
-  const { addItem } = useCart();
-
-    // add-to-cart helper (localStorage for now)
-    const addToCart = (product) => {
-  try {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const idx = cart.findIndex((c) => c.id === product.id);
-    if (idx >= 0) {
-      cart[idx].qty += 1;
-    } else {
-    }
-    localStorage.setItem('cart', JSON.stringify(cart));
-  } catch {}
+/* --------------------------
+   Category image & discount maps
+   -------------------------- */
+const CATEGORY_IMAGE_MAP = {
+  "Shirt": "https://img.guess.com/image/upload/f_auto,q_auto,fl_strip_profile,e_sharpen:50,,w_800,c_scale/v1/EU/Style/ECOMM/M2YH44WERX0-G7V2",
+  "T-Shirt": "https://avatars.mds.yandex.net/i?id=c6308da86b1d608d7b99f496d84fa24b2f6a26d6-5888219-images-thumbs&n=13",
+  "Jeans": "https://img.joomcdn.net/bad4a5bc1a5d76e0eba415e65d96c7b569dcaa74_original.jpeg",
+  "Cotton Pant": "https://thehouseofrare.com/cdn/shop/products/IMG_0313_4f8d3323-e94d-417e-8da0-4019b31249ff.jpg?v=1689145478",
+  "Footwear": "https://i5.walmartimages.com/asr/1ff97059-331f-417e-bdd2-4efd1336ae00.c648244e6bfa27c296b8756a65dfe1ef.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF",
+  "Co-ords": "https://www.lovechoje.com/wp-content/uploads/2021/12/2-1.jpg",
+  "Watches": "https://avatars.mds.yandex.net/i?id=b1841c27fdec5cbfd117ecdbc635f7d1ad110da2-5008667-images-thumbs&n=13",
+  "Track": "https://img.joomcdn.net/bda934a74d164ddd24acd823795571480d8ccf79_original.jpeg",
+  "Caps": "https://cdn1.ozone.ru/s3/multimedia-r/6423413127.jpg",
+  "Jewellery": "https://mir-s3-cdn-cf.behance.net/project_modules/1400/6f9dc7127435607.6141dbb9547b7.jpg",
+  "Sunglasses": "https://cdn1.ozone.ru/s3/multimedia-u/6369036066.jpg",
+  "Wallets": "https://i.etsystatic.com/21490334/r/il/0be459/2377873457/il_794xN.2377873457_8hti.jpg",
+  "Combo set": "https://i.pinimg.com/originals/1f/21/29/1f212972bd20c4e855a6dd576630111e.jpg",
+  "Pants": "https://i.ytimg.com/vi/emXL_7_xVRQ/maxresdefault.jpg",
+  "Shorts": "https://collectivegen.com/wp-content/uploads/2017/05/Four-Ways-to-Make-Cut-Off-Denim-Shorts-A-Pair-and-A-Spare-6-778x542@2x.jpg",
+  "Belt": "https://a.lmcdn.ru/pi/img600x866/M/P/MP002XW118Q3_11495663_9_v3_2x.jpg",
+  "Suit": "https://fashionhot.club/uploads/posts/2022-11/1668782153_49-fashionhot-club-p-temno-serii-klassicheskii-kostyum-53.jpg",
+  "Sherwani": "https://i.pinimg.com/originals/21/c5/b2/21c5b257e9871fae6249dd931e4f947c.jpg",
+  "Jodhpuri": "https://images.sareeswholesale.com/Navy-Blue-Thread-Work-Art-Silk-3-Pcs-Jodhpuri-Set-196734.jpg",
+  "Kurthas": "https://rukminim2.flixcart.com/image/850/1000/xif0q/ethnic-set/z/3/v/xxl-kurta-and-pyjama-set-crystal-revenue-original-imagrhfmcmhrnhwt.jpeg?q=90&crop=false",
+  "Dress code": "https://sc04.alicdn.com/kf/H5178d65553c9407395b9e46362f08b631/220502705/H5178d65553c9407395b9e46362f08b631.jpg",
+  "Jacket": "https://avatars.mds.yandex.net/i?id=12467a8d9a2902b6eb71e9dbd656a905_l-5022489-images-thumbs&ref=rim&n=13&w=1500&h=2000",
+  "Perfume": "https://i.pinimg.com/736x/da/93/25/da9325eab79b8f642caa0c15937735b9--product-photography-conceptual-photography.jpg",
+  "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
 };
 
+const CATEGORY_DISCOUNT_MAP = {
+  "Cotton Pant": "Cotton Pant",
+  "T-Shirt": "T-Shirt",
+  "Jeans": "Jeans",
+  "Footwear": "Footwear",
+  "Watches": "Watches",
+  "Shirt": "Shirt",
+  "Footwear": "Footwear",
+  "Co-ords": "Co-ords",
+  "Track": "Trackt",
+  "Jewellery": "Jewellery",
+  "Sunglasses": "Sunglasses",
+  "Wallets": "Wallets",
+  "Combo set": "Combo set",
+  "Pants": "Pants",
+  "Shorts": "Shorts",
+  "Belt": "Belt",
+  "Suit": "Suit",
+  "Sherwani": "Sherwani",
+  "Jodhpuri": "Jodhpuri",
+  "Kurthas": "Kurthas",
+  "Dress code": "Dress codes",
+  "Jacket": "Jacket",
+  "Perfume": "Perfume",
+  "Lotion": "Lotion",
 
 
-  // Featured products
+  // Add or adjust discounts for other categories
+};
+
+const CATEGORY_IMAGE_FALLBACK = "https://via.placeholder.com/800x1000?text=Category+Image";
+const DEFAULT_DISCOUNT = "";
+
+/* --------------------------
+   Component
+   -------------------------- */
+export default function Home() {
+  const navigate = useNavigate();
+  const { addItem } = useCart ? useCart() : { addItem: () => {} };
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // static list you already had
   const categories = useMemo(() => ([
     "Shirt","T-Shirt","Jeans","Cotton Pant","Footwear","Co-ords","Watches","Track","Caps",
     "Jewellery","Sunglasses","Wallets","Combo set","Pants","Shorts","Belt","Suit","Sherwani",
     "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Lotion",
   ].filter((v, i, a) => a.indexOf(v) === i)), []);
-
-  const images = {
-    "Shirt": "https://avatars.mds.yandex.net/i?id=5c76768530d0bb6b2bfd944b0b4c01be05f64263-15273796-images-thumbs&n=13",
-    "T-Shirt": "https://threadcurve.com/wp-content/uploads/2020/06/types-of-t-shirts-June252020-1-min.jpg",
-    "Jeans": "https://avatars.mds.yandex.net/i?id=12ca4c51bac06cb8e7320723ebb31863520e7562-5294211-images-thumbs&n=13",
-    "Cotton Pant": "https://avatars.mds.yandex.net/i?id=f794272c1a0f622dbeba3a7ec4faae4590c1d34b-10576314-images-thumbs&n=13",
-    "Footwear": "https://avatars.mds.yandex.net/i?id=c980cc0f23b52ede5f8e17700b04a34b0d653726-5524434-images-thumbs&n=13",
-    "Co-ords": "https://avatars.mds.yandex.net/i?id=5cf076039615d9e29be5a61f8f8c3819c34c0b66-4266390-images-thumbs&n=13",
-    "Watches": "https://avatars.mds.yandex.net/i?id=b280c5c152e73ed68d3e2d058df4a2738588dbdf-4432378-images-thumbs&n=13",
-    "Track": "https://avatars.mds.yandex.net/i?id=34958bbc815f723e69c42771d58b27b0a2b35ab5-12474456-images-thumbs&n=13",
-    "Caps": "https://avatars.mds.yandex.net/i?id=3105fd968064bc197bbd8abe1cfe85a6b98bc5db7d9e1bb3-12530517-images-thumbs&n=13",
-    "Jewellery": "https://avatars.mds.yandex.net/i?id=aac501e3aa6355247e80366cb9534abc5413c1ca-7094423-images-thumbs&n=13",
-    "Sunglasses": "https://avatars.mds.yandex.net/i?id=df45a19acc0a41c5ff9f745b266ed6c711c94adb-4580574-images-thumbs&n=13",
-    "Wallets": "https://avatars.mds.yandex.net/i?id=522af53e28f6007585df5b35cc6807a03ba922ee-8255800-images-thumbs&n=13",
-    "Combo set": "https://avatars.mds.yandex.net/i?id=c20ff565c49f1371c8c3c3cf417eddfa7343f8cd-6959765-images-thumbs&n=13",
-    "Pants": "https://avatars.mds.yandex.net/i?id=1e85b06aeb0859683c1be0a724d2b5ee4d81e56c-4568431-images-thumbs&n=13",
-    "Shorts": "https://avatars.mds.yandex.net/i?id=8e9f532140c0ad0e811914d38f89f287450ac803-10456573-images-thumbs&n=13",
-    "Belt": "https://avatars.mds.yandex.net/i?id=1af1a8c0495302c5f7d4d7ba22a7d03f183630ca-9185952-images-thumbs&n=13",
-    "Suit": "https://avatars.mds.yandex.net/i?id=57c2afbfa5e4b05a12f0ca4a9aa3c82f4c776166-5298842-images-thumbs&n=13",
-    "Sherwani": "https://avatars.mds.yandex.net/i?id=ae5ce3a99bed2cb044cf89a67d1f0547a2244da7-5437458-images-thumbs&n=13",
-    "Jodhpuri": "https://avatars.mds.yandex.net/i?id=44460250d1758fab14d2713e2c0500d9373b8d85-12347000-images-thumbs&n=13",
-    "Kurthas": "https://avatars.mds.yandex.net/i?id=a18891cd007b8331e65298eca2e4108600f37f8d-9229079-images-thumbs&n=13",
-    "Dress code": "https://avatars.mds.yandex.net/i?id=794617b79a5b7b32bb4224d97c4ff891e38ad380-12421240-images-thumbs&n=13",
-    "Jacket": "https://avatars.mds.yandex.net/i?id=b160d192a607a291524398ab408f3a53c12287a8-5277625-images-thumbs&n=13",
-    "Perfume": "https://avatars.mds.yandex.net/i?id=956c0fc59bd7e39b5feff9dec271e4e2-5245347-images-thumbs&n=13",
-    "Lotion": "https://avatars.mds.yandex.net/i?id=324083e619add493028bfacab69e147ec9acc371-11395806-images-thumbs&n=13",
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('access');
@@ -85,70 +111,97 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  // click handlers
-  const goCategory = (name) => navigate(`/category/${slugify(name)}`, { state: { raw: name } });
-  const goProduct = (id) => navigate(`/product/${id}`);
+  const goCategory = (name) => {
+    const slug = slugify(name || '');
+    navigate(`/category/${slug}`, { state: { raw: name }});
+  };
+
+  const goProduct = (id) => {
+    navigate(`/product/${id}`);
+  };
 
   return (
     <>
       <Navbar />
 
-      {/* Video Banner Section */}
+      {/* VIDEO BANNER */}
       <section className="video-banner">
         <div className="video-container">
-          <video className="banner-video" autoPlay muted loop playsInline>
-            <source
-              src="https://videos.pexels.com/video-files/853800/853800-hd_1920_1080_25fps.mp4"
-              type="video/mp4"
-            />
+          <video
+            className="banner-video"
+            autoPlay
+            muted
+            playsInline
+            onEnded={(e) => { e.target.currentTime = 0; e.target.play(); }}
+          >
+            <source src={bannerVideo} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
 
-          {/* Overlay content */}
           <div className="video-overlay">
             <div className="banner-content">
-              <h1 className="banner-title">Welcome to Our Website</h1>
-              <p className="banner-subtitle">Discover amazing experiences with us</p>
-              <button className="cta-button" onClick={() => goCategory('Shirt')}>
-                Get Started
+              <h1 className="banner-title">Welcome to Our Store</h1>
+              <p className="banner-subtitle">Shop trending collections &amp; amazing offers</p>
+              <button className="cta-button" onClick={() => goCategory(categories[0] || 'all')}>
+                Shop Now
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Categories Section (clickable) */}
+      {/* CATEGORIES SECTION */}
       <section className="categories-section">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Shop by Categories</h2>
-            <p className="section-subtitle">Discover our wide range of premium fashion collections</p>
+            <p className="section-subtitle">Explore bestselling categories</p>
           </div>
 
           <div className="categories-grid">
-            {categories.map((category, index) => (
-              <div
-                className="category-card"
-                key={index}
-                onClick={() => goCategory(category)}
-                role="button"
-              >
-                <div className="category-image">
-                  <img src={images[category]} alt={category} />
-                </div>
-                <h3 className="category-title">{category}</h3>
-              </div>
-            ))}
+            {Array.isArray(categories) && categories.length > 0 ? (
+              categories.map((category, index) => {
+                const categoryName = typeof category === 'string' ? category : (category.name || category.title || '');
+                const imgSrc = CATEGORY_IMAGE_MAP[categoryName] || CATEGORY_IMAGE_FALLBACK;
+                const discount = CATEGORY_DISCOUNT_MAP[categoryName] || DEFAULT_DISCOUNT;
+
+                return (
+                  <div
+                    className="category-card"
+                    key={`${categoryName}-${index}`}
+                    onClick={() => goCategory(categoryName)}
+                    role="button"
+                  >
+                    <div className="category-media" aria-hidden>
+                      <img src={imgSrc} alt={categoryName} loading="lazy" />
+                    </div>
+
+                    <div className="category-label">
+                      <span>{categoryName}</span>
+                    </div>
+
+                    <div className="category-banner">
+                      <div className="banner-text">
+                        <div className="discount">{discount}</div>
+                        <div className="shop-now">Shop Now</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="no-cats">No categories available</div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Products Section (Featured Products) */}
+      {/* FEATURED PRODUCTS */}
       <section className="products-section">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Featured Products</h2>
-            <p className="section-subtitle">Discover our latest collection of premium fashion</p>
+            <p className="section-subtitle">Handpicked just for you</p>
           </div>
 
           <div className="products-grid">
@@ -163,92 +216,75 @@ export default function Home() {
                 const src = first ? (first.url || imgUrl(first.image)) : '';
                 return (
                   <div
-  className="product-card"
-  key={p.id}
-  onClick={() => goProduct(p.id)}
->
-  <div className="product-image">
-    {src ? (
-      <img src={src} alt={p.name} loading="lazy" />
-    ) : (
-      <img
-        src="https://via.placeholder.com/400x500?text=No+Image"
-        alt={p.name}
-        loading="lazy"
-      />
-    )}
+                    className="product-card"
+                    key={p.id}
+                    onClick={() => goProduct(p.id)}
+                  >
+                    <div className="product-image">
+                      {src ? (
+                        <img src={src} alt={p.name} loading="lazy" />
+                      ) : (
+                        <img src="https://via.placeholder.com/400x500?text=No+Image" alt={p.name} loading="lazy" />
+                      )}
 
-    <div className="product-overlay">
-      <button
-        className="btn ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          goProduct(p.id);
-        }}
-      >
-        Quick View
-      </button>
-    </div>
-  </div>
+                      <div className="product-overlay">
+                        <button
+                          className="btn ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goProduct(p.id);
+                          }}
+                        >
+                          Quick View
+                        </button>
+                      </div>
+                    </div>
 
-  <div className="product-info">
-    <h3 className="product-title" title={p.name}>{p.name}</h3>
+                    <div className="product-info">
+                      <h3 className="product-title" title={p.name}>{p.name}</h3>
 
-    <div className="product-meta">
-      {p.brand && <span className="brand">{p.brand}</span>}
-      {(p.main_category || p.sub_category) && (
-        <div className="product-categories">
-          {p.main_category && (
-            <span className="category-tag main">{p.main_category}</span>
-          )}
-          {p.sub_category && (
-            <span className="category-tag sub">{p.sub_category}</span>
-          )}
-        </div>
-      )}
-      {p.description && (
-        <p className="product-desc">
-          {String(p.description).slice(0, 70)}
-          {String(p.description).length > 70 ? '…' : ''}
-        </p>
-      )}
-    </div>
+                      <div className="product-meta">
+                        {p.brand && <span className="brand">{p.brand}</span>}
+                        {(p.main_category || p.sub_category) && (
+                          <div className="product-categories">
+                            {p.main_category && (
+                              <span className="category-tag main">{p.main_category}</span>
+                            )}
+                            {p.sub_category && (
+                              <span className="category-tag sub">{p.sub_category}</span>
+                            )}
+                          </div>
+                        )}
+                        {p.description && (
+                          <p className="product-desc">
+                            {String(p.description).slice(0, 70)}
+                            {String(p.description).length > 70 ? '…' : ''}
+                          </p>
+                        )}
+                      </div>
 
-    <div className="product-bottom">
-      <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+                      <div className="product-bottom">
+                        <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
 
-      <div className="actions">
-        <button
-          className="btn outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            goProduct(p.id);
-          }}
-        >
-          Details
-        </button>
-
-      <button
-  className="btn solid"
-  onClick={(e) => {
-    e.stopPropagation();
-    addItem(p, 1); // add product to cart
-  }}
->
-  Add to Cart
-</button> 
-
-      </div>
-    </div>
-  </div>
-</div>
-
+                        <div className="actions">
+                          <button
+                            className="btn outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              goProduct(p.id);
+                            }}
+                          >
+                            Details
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })
             )}
           </div>
 
-          {/* View All Products button */}
           <div className="view-all-products">
             <button
               className="view-all-btn"

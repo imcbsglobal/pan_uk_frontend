@@ -1,427 +1,317 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+// File: ProductDetail.jsx
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { FaWhatsapp, FaShoppingCart } from 'react-icons/fa';
+import { FaWhatsapp, FaShoppingCart, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import './ProductDetail.scss';
 
-const apiBase = import.meta.env?.VITE_API_URL || 'https://panukonline.com';
-const api = axios.create({ baseURL: apiBase });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://panukonline.com',
+});
 
-// ------------- Safe storage helpers -------------
-const memStore = {};
-function canUseLocalStorage() {
+const hasLS = typeof window !== 'undefined' && !!window.localStorage;
+const getToken = () => (hasLS ? localStorage.getItem('access') : null);
+const readJSON = (k, d) => {
   try {
-    if (typeof window === 'undefined' || !('localStorage' in window)) return false;
-    const k = '__ls_test__';
-    window.localStorage.setItem(k, '1');
-    window.localStorage.removeItem(k);
+    return JSON.parse(localStorage.getItem(k) || 'null') ?? d;
+  } catch {
+    return d;
+  }
+};
+const writeJSON = (k, v) => {
+  try {
+    localStorage.setItem(k, JSON.stringify(v));
     return true;
   } catch {
     return false;
   }
-}
-const hasLS = canUseLocalStorage();
+};
 
-function readJSON(key, fallback) {
-  try {
-    const raw = hasLS ? window.localStorage.getItem(key) : memStore[key];
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
+function extractImageUrls(product) {
+  const urls = [];
+  if (Array.isArray(product?.images)) {
+    for (const img of product.images) {
+      if (!img) continue;
+      if (typeof img === 'string') urls.push(img);
+      else if (typeof img.image === 'string') urls.push(img.image);
+      else if (typeof img.url === 'string') urls.push(img.url);
+    }
   }
-}
-function writeJSON(key, value) {
-  try {
-    const s = JSON.stringify(value);
-    if (hasLS) window.localStorage.setItem(key, s);
-    memStore[key] = s;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Normalize image url from either {url} or {image}
-function imgUrl(path) {
-  if (!path) return '';
-  if (typeof path === 'string' && path.startsWith('http')) return path;
-  return `${apiBase}${path}`;
-}
-function getImageUrl(img) {
-  if (!img) return '';
-  return img.url ? img.url : imgUrl(img.image);
+  if (typeof product?.image === 'string') urls.push(product.image);
+  if (typeof product?.image_url === 'string') urls.push(product.image_url);
+  if (typeof product?.thumbnail === 'string') urls.push(product.thumbnail);
+  return Array.from(new Set(urls.filter(Boolean)));
 }
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [p, setP] = useState(null);
+  const productId = useMemo(() => String(id || ''), [id]);
+
+  const [product, setProduct] = useState(null);
+  const [images, setImages] = useState([]);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState(null);
-
-  // local, reorderable copy for swap behavior
-  const [localImages, setLocalImages] = useState([]);
-
-  // cart UI feedback
-  const [addedMsg, setAddedMsg] = useState('');
+  const [err, setErr] = useState('');
   const [inCart, setInCart] = useState(false);
 
   useEffect(() => {
+    let alive = true;
     setLoading(true);
-    setErr(null);
-    const token = hasLS ? localStorage.getItem('access') : null;
+    setErr('');
+    setImages([]);
+    setActiveIdx(0);
+
     api
-      .get(`/api/products/${id}/`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      .get(`/api/products/${productId}/`)
+      .then((res) => {
+        if (!alive) return;
+        const p = res.data;
+        setProduct(p);
+        const urls = extractImageUrls(p);
+        setImages(urls.length ? urls : ['']);
       })
-      .then((res) => setP(res.data || {}))
-      .catch((e) => {
-        console.error('Product fetch failed:', e);
-        setErr(e?.message || 'Failed to load product');
-        setP(null);
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  // Initialize localImages when product changes
-  useEffect(() => {
-    const imgs = Array.isArray(p?.images) ? p.images.filter(Boolean) : [];
-    setLocalImages(imgs);
-  }, [p]);
-
-  const hasImages = localImages.length > 0;
-  const mainImage = hasImages ? getImageUrl(localImages[0]) : '';
-  const thumbnails = hasImages ? localImages.slice(1) : [];
-
-  // Check if already in cart (by composite key)
-  useEffect(() => {
-    if (!p) {
-      setInCart(false);
-      return;
-    }
-    const key = `${p.id || 'noid'}|${p.color || ''}|${p.size || ''}`;
-    const cart = readJSON('cart', []);
-    const exists = cart.some((c) => c.key === key);
-    setInCart(exists);
-  }, [p]);
-
-  // Swap clicked thumbnail with main image (index 0)
-  const handleThumbClick = (thumbIdx) => {
-    const idx = thumbIdx + 1; // 0 is main
-    setLocalImages((prev) => {
-      if (!prev || prev.length <= idx) return prev;
-      const next = [...prev];
-      [next[0], next[idx]] = [next[idx], next[0]];
-      return next;
-    });
-  };
-
-  // WhatsApp message (includes Model name & Cotton % if present)
-  const whatsappHref = useMemo(() => {
-    const title = p?.name ? `Inquiry about: ${p.name}` : 'Product inquiry';
-    const modelLine = p?.model_name ? `\nModel: ${p.model_name}` : '';
-    const cottonProvided =
-      p?.cotton_percentage !== null &&
-      p?.cotton_percentage !== undefined &&
-      p?.cotton_percentage !== '';
-    const cottonLine = cottonProvided ? `\nCotton: ${p.cotton_percentage}%` : '';
-    const price = (p?.price ?? '') !== '' ? `\nPrice: ₹${Number(p.price).toFixed(2)}` : '';
-    const sku = p?.id ? `\nProduct ID: ${p.id}` : '';
-    const link =
-      typeof window !== 'undefined' ? `\nLink: ${window.location.href}` : '';
-    const imageLine = mainImage ? `\nImage: ${mainImage}` : '';
-    const txt = encodeURIComponent(
-      `${title}${modelLine}${cottonLine}${price}${sku}${imageLine}${link}`
-    );
-    return `https://wa.me/919061947005?text=${txt}`;
-  }, [p, mainImage]);
-
-  // Compose the cart key once
-  function cartKey(prod) {
-    return `${prod?.id || 'noid'}|${prod?.color || ''}|${prod?.size || ''}`;
-  }
-
-  // --- CART: add to storage with verification ---
-  const addToCart = () => {
-    if (!p) {
-      setAddedMsg('Cannot add: product not loaded');
-      return;
-    }
-
-    const key = `${p.id || 'noid'}|${p.color || ''}|${p.size || ''}`;
-    const baseItem = {
-      key,
-      id: p.id ?? null,
-      name: p.name || 'Product',
-      price: Number(p.price || 0),
-      image: mainImage || (p.images?.[0] ? getImageUrl(p.images[0]) : ''),
-      color: p.color || null,
-      size: p.size || null,
-      weight: p.weight || null,
-      brand: p.brand || null,
-      model_name: p.model_name || null,
-      cotton_percentage:
-        p.cotton_percentage !== null && p.cotton_percentage !== undefined
-          ? p.cotton_percentage
-          : null,
-      qty: 1,
-    };
-
-    // read existing (both keys)
-    let cart = readJSON('cart', []);
-    let cartItems = readJSON('cartItems', []); // compatibility with other pages
-
-    // upsert into both arrays
-    const upsert = (arr) => {
-      const idx = arr.findIndex((c) => c.key === key);
-      if (idx !== -1) {
-        const next = [...arr];
-        next[idx] = { ...next[idx], qty: Number(next[idx].qty || 0) + 1 };
-        return next;
-      } else {
-        return [...arr, baseItem];
-      }
-    };
-    const nextCart = upsert(cart);
-    const nextCartItems = upsert(cartItems);
-
-    const ok1 = writeJSON('cart', nextCart);
-    const ok2 = writeJSON('cartItems', nextCartItems);
-
-    const verifyCart = readJSON('cart', []);
-    const verified = verifyCart.some((c) => c.key === key);
-
-    if (ok1 && ok2 && verified) {
-      setInCart(true); // instantly flip to "Remove from Cart"
-      setAddedMsg('Added to cart ✔');
-      try {
-        window.dispatchEvent(
-          new CustomEvent('cart:updated', { detail: { key, qtyAdded: 1 } })
-        );
-      } catch {}
-    } else {
-      console.warn('Add to cart failed: storage write/verify issue', {
-        ok1, ok2, verified,
-      });
-      setAddedMsg('Could not add to cart. Please check storage permissions.');
-    }
-
-    window.clearTimeout(window.__pd_toast);
-    window.__pd_toast = window.setTimeout(() => setAddedMsg(''), 2500);
-  };
-
-  // --- CART: remove ENTIRE ITEM (not decrement) ---
-  const removeFromCart = () => {
-    if (!p) {
-      setAddedMsg('Cannot remove: product not loaded');
-      return;
-    }
-    const key = cartKey(p);
-
-    // read both keys
-    let cart = readJSON('cart', []);
-    let cartItems = readJSON('cartItems', []);
-
-    // qty to subtract for listeners
-    const current = cart.find((c) => c.key === key);
-    const qtyRemoved = Number(current?.qty || 1);
-
-    // remove the item completely
-    const nextCart = cart.filter((c) => c.key !== key);
-    const nextCartItems = cartItems.filter((c) => c.key !== key);
-
-    const ok1 = writeJSON('cart', nextCart);
-    const ok2 = writeJSON('cartItems', nextCartItems);
-
-    if (ok1 && ok2) {
-      setInCart(false); // instantly flip back to "Add to Cart"
-      setAddedMsg('Removed from cart ✔');
-      try {
-        window.dispatchEvent(
-          new CustomEvent('cart:updated', { detail: { key, qtyRemoved } })
-        );
-      } catch {}
-    } else {
-      setAddedMsg('Could not remove from cart. Please check storage permissions.');
-    }
-
-    window.clearTimeout(window.__pd_toast);
-    window.__pd_toast = window.setTimeout(() => setAddedMsg(''), 2500);
-  };
-
-  // Keep `inCart` synced if cart changes elsewhere
-  useEffect(() => {
-    if (!p) return;
-    const key = cartKey(p);
-
-    const recompute = () => {
-      const cart = readJSON('cart', []);
-      setInCart(cart.some((c) => c.key === key));
-    };
-
-    const onUpdated = () => recompute();
-    const onStorage = (e) => {
-      if (e.key === 'cart') recompute();
-    };
-
-    window.addEventListener('cart:updated', onUpdated);
-    window.addEventListener('storage', onStorage);
+      .catch(() => alive && setErr('Failed to load product.'))
+      .finally(() => alive && setLoading(false));
 
     return () => {
-      window.removeEventListener('cart:updated', onUpdated);
-      window.removeEventListener('storage', onStorage);
+      alive = false;
     };
-  }, [p]);
+  }, [productId]);
+
+  useEffect(() => {
+    const cart = readJSON('cart', []);
+    setInCart(cart.some((it) => String(it.id) === productId));
+  }, [productId]);
+
+  const showPrev = useCallback(() => {
+    setActiveIdx((i) => (images.length ? (i - 1 + images.length) % images.length : 0));
+  }, [images.length]);
+
+  const showNext = useCallback(() => {
+    setActiveIdx((i) => (images.length ? (i + 1) % images.length : 0));
+  }, [images.length]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowLeft') showPrev();
+      if (e.key === 'ArrowRight') showNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showPrev, showNext]);
+
+  useEffect(() => {
+    try {
+      if (!product) return;
+      const raw = sessionStorage.getItem('postAuth');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data?.action === 'ADD_TO_CART' && String(data.productId) === productId) {
+        sessionStorage.removeItem('postAuth');
+        handleAddToCart();
+      }
+    } catch {}
+  }, [product, productId]);
+
+  const ensureAuthed = () => {
+    const token = getToken();
+    if (token) return true;
+    try {
+      sessionStorage.setItem(
+        'postAuth',
+        JSON.stringify({ action: 'ADD_TO_CART', productId, pathname: location.pathname })
+      );
+    } catch {}
+    navigate('/login');
+    return false;
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    if (!ensureAuthed()) return;
+
+    const cart = readJSON('cart', []);
+    if (!cart.some((it) => String(it.id) === productId)) {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: Number(product.price || 0),
+        image: images[0] || '',
+        qty: 1,
+      });
+      writeJSON('cart', cart);
+      setInCart(true);
+      try {
+        window.dispatchEvent(new Event('cart:updated'));
+      } catch {}
+    }
+  };
+
+  const handleRemoveFromCart = () => {
+    const cart = readJSON('cart', []);
+    const next = cart.filter((it) => String(it.id) !== productId);
+    writeJSON('cart', next);
+    setInCart(false);
+    try {
+      window.dispatchEvent(new Event('cart:updated'));
+    } catch {}
+  };
 
   if (loading) {
     return (
       <>
         <Navbar />
-        <div className="pd-container">
-          <div className="pd-skeleton">Loading…</div>
+        <div className="pd-wrap">
+          <div className="pd-loading">Loading…</div>
         </div>
         <Footer />
       </>
     );
   }
 
-  if (!p) {
+  if (err || !product) {
     return (
       <>
         <Navbar />
-        <div className="pd-container">
-          {err ? <div className="pd-alert pd-alert--error">{String(err)}</div> : null}
-          Product not found.
-          <div style={{ marginTop: 12 }}>
-            <button className="pd-btn" onClick={() => navigate(-1)}>Back</button>
-          </div>
+        <div className="pd-wrap">
+          <div className="pd-error">{err || 'Not found'}</div>
         </div>
         <Footer />
       </>
     );
   }
+
+  const mainImage = images[activeIdx] || '';
 
   return (
     <>
       <Navbar />
+      <main className="pd-wrap">
+        <section className="pd-grid">
+          <aside className="pd-media">
+            <div className="pd-mainwrap">
+              {images.length > 1 && (
+                <button className="pd-navbtn pd-navbtn--left" onClick={showPrev} aria-label="previous image">
+                  <FaChevronLeft />
+                </button>
+              )}
 
-      <div className="pd-container">
-        {err ? <div className="pd-alert pd-alert--warn">{String(err)}</div> : null}
-        {addedMsg ? <div className="pd-toast">{addedMsg}</div> : null}
-
-        <div className="pd-grid">
-          {/* Gallery */}
-          <div className="pd-gallery">
-            <div className="pd-main-img">
               {mainImage ? (
-                <img
-                  src={mainImage}
-                  alt={p.name || 'Product image'}
-                  onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/800x800?text=Image+Unavailable'; }}
-                />
+                <figure className="pd-imgframe">
+                  <img src={mainImage} alt={product.name} className="pd-mainimg" />
+                </figure>
               ) : (
-                <img
-                  src="https://via.placeholder.com/800x800?text=No+Image"
-                  alt={p.name || 'No image'}
-                />
+                <div className="pd-placeholder">No Image</div>
+              )}
+
+              {images.length > 1 && (
+                <button className="pd-navbtn pd-navbtn--right" onClick={showNext} aria-label="next image">
+                  <FaChevronRight />
+                </button>
               )}
             </div>
 
-            {thumbnails.length > 0 && (
-              <div className="pd-thumbs" role="list">
-                {thumbnails.map((img, i) => {
-                  const u = getImageUrl(img);
-                  return (
-                    <button
-                      key={img?.id || u || i}
-                      type="button"
-                      className="pd-thumb"
-                      onClick={() => handleThumbClick(i)}
-                      aria-label={`View image ${i + 2}`}
-                      title="Click to swap with main image"
-                    >
-                      <img
-                        src={u || 'https://via.placeholder.com/160x160?text=No+Img'}
-                        alt=""
-                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/160x160?text=No+Img'; }}
-                      />
-                    </button>
-                  );
-                })}
+            {images.length > 1 && (
+              <div className="pd-thumbs" role="tablist" aria-label="Product thumbnails">
+                {images.map((url, i) => (
+                  <button
+                    key={url + i}
+                    className={`pd-thumb ${i === activeIdx ? 'pd-thumb--active' : ''}`}
+                    onClick={() => setActiveIdx(i)}
+                    aria-selected={i === activeIdx}
+                  >
+                    {url ? <img src={url} alt={`Thumbnail ${i + 1}`} /> : <div className="pd-thumb-ph" />}
+                  </button>
+                ))}
               </div>
             )}
-          </div>
+          </aside>
 
-          {/* Info */}
-          <div className="pd-info">
-            <div className="pd-breadcrumb">
-              {p.main_category ? <span className="pd-crumb">{p.main_category}</span> : null}
-              {p.sub_category ? <span className="pd-crumb">/ {p.sub_category}</span> : null}
+          <article className="pd-info">
+            <div className="pd-head">
+              <h1 className="pd-title">{product.name}</h1>
+              <div className="pd-badges">
+                {product.category && <span className="pd-badge">{product.category}</span>}
+                {product.brand && <span className="pd-badge pd-badge--muted">{product.brand}</span>}
+              </div>
             </div>
 
-            <h1 className="pd-title">{p.name || 'Untitled Product'}</h1>
+            <div className="pd-price-row">
+              <div className="pd-price">₹ {Number(product.price || 0).toFixed(2)}</div>
+              <div className="pd-cta">
+                <button
+                  className={`pd-btn ${inCart ? 'pd-btn--danger' : 'pd-btn--primary'}`}
+                  onClick={inCart ? handleRemoveFromCart : handleAddToCart}
+                  aria-pressed={inCart}
+                >
+                  <FaShoppingCart size={16} />
+                  <span>{inCart ? 'Remove' : 'Add to Cart'}</span>
+                </button>
 
-            {(p.price ?? '') !== '' && (
-              <div className="pd-price">₹ {Number(p.price ?? 0).toFixed(2)}</div>
-            )}
-
-            {p.description ? (
-              <p className="pd-desc">{p.description}</p>
-            ) : null}
-
-            {/* Action buttons */}
-            <div className="pd-btn-row">
-              <a className="pd-btn pd-btn--whatsapp" href={whatsappHref} target="_blank" rel="noreferrer">
-                <FaWhatsapp size={18} />
-                <span>Enquire / Order on WhatsApp</span>
-              </a>
-
-              <button
-                className={`pd-btn ${inCart ? 'pd-btn--success' : 'pd-btn--primary'}`}
-                onClick={inCart ? removeFromCart : addToCart}
-              >
-                <FaShoppingCart size={16} />
-                <span>{inCart ? 'Remove from Cart' : 'Add to Cart'}</span>
-              </button>
-
-              <button className="pd-btn pd-btn--ghost" onClick={() => navigate('/cart')}>
-                Go to Cart
-              </button>
-
-              <button className="pd-btn pd-btn--ghost" onClick={() => navigate(-1)}>
-                Back
-              </button>
+                <a
+                  className="pd-btn pd-btn--outline"
+                  href={`https://wa.me/919999999999?text=${encodeURIComponent(`Hi! I am interested in ${product.name}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FaWhatsapp size={18} />
+                  <span>Chat</span>
+                </a>
+              </div>
             </div>
 
-            {/* Specs */}
-            <div className="pd-specs">
-              <h2 className="pd-section-title">Product Specs</h2>
-              <dl className="pd-specs-grid">
-                {/* NEW FIELDS */}
-                {p.model_name ? (<><dt>Model</dt><dd>{p.model_name}</dd></>) : null}
-                {(p.cotton_percentage !== null && p.cotton_percentage !== undefined && p.cotton_percentage !== '') ? (
-                  <><dt>Cotton</dt><dd>{p.cotton_percentage}%</dd></>
-                ) : null}
+            <div className="pd-details card">
+              <h2 className="pd-subtitle">Product Details</h2>
+              <table className="pd-table">
+                <tbody>
+                  {Object.entries(product).map(([key, value]) => {
+                    if (
+                      ['id', 'name', 'price', 'description', 'images', 'image', 'thumbnail', 'created_at', 'category', 'sub_category', 'brand'].includes(
+                        key
+                      )
+                    ) {
+                      return null;
+                    }
 
-                {/* Existing fields */}
-                {p.brand ? (<><dt>Brand</dt><dd>{p.brand}</dd></>) : null}
-                {p.material ? (<><dt>Material</dt><dd>{p.material}</dd></>) : null}
-                {p.color ? (<><dt>Color</dt><dd>{p.color}</dd></>) : null}
-                {p.size ? (<><dt>Size</dt><dd>{p.size}</dd></>) : null}
-                {p.weight ? (<><dt>Weight</dt><dd>{p.weight}</dd></>) : null}
-                {p.main_category ? (<><dt>Category</dt><dd>{p.main_category}</dd></>) : null}
-                {p.sub_category ? (<><dt>Sub Category</dt><dd>{p.sub_category}</dd></>) : null}
-              </dl>
+                    let displayValue;
+                    if (Array.isArray(value)) {
+                      displayValue = value.join(', ');
+                    } else if (typeof value === 'object' && value !== null) {
+                      displayValue = JSON.stringify(value);
+                    } else {
+                      displayValue = String(value);
+                    }
+
+                    return (
+                      <tr key={key}>
+                        <td className="pd-key">{key.replace(/_/g, ' ')}</td>
+                        <td className="pd-value">{displayValue}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </div>
-        </div>
-      </div>
 
+            <div className="pd-description card">
+              <h2 className="pd-subtitle">Description</h2>
+              <p className="pd-desc-text">{product.description || '—'}</p>
+            </div>
+
+            <div className="pd-actions">
+              <button className="pd-btn pd-btn--ghost" onClick={() => navigate('/cart')}>Go to Cart</button>
+              <button className="pd-btn pd-btn--ghost" onClick={() => navigate(-1)}>Back</button>
+            </div>
+          </article>
+        </section>
+      </main>
       <Footer />
     </>
   );
 }
+
