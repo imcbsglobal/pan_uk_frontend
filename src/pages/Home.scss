@@ -41,15 +41,18 @@
 
 // Responsive video adjustments
 @media (max-width: 768px) {
-  .video-banner {
-    height: 60vh;
-    min-height: 500px;
+     .video-banner, .video-container {
+    position: relative;
+    overflow: hidden;     /* keep everything inside */
+    height: 40vh !important;   /* enforce a visible height on mobile */
+    max-height: 420px;
+    background: transparent;   /* make sure no black bg sits on top */
   }
 }
 
 @media (max-width: 480px) {
   .video-banner {
-    height: 50vh;
+    height: 80vh;
     min-height: 400px;
   }
 }

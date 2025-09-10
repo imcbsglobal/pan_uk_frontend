@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useCart } from "../context/CartContext.jsx";
 import bannerVideo from "../assets/banner.mp4";
+import compoimage from "../assets/composet.jpeg";
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
@@ -31,16 +32,16 @@ const CATEGORY_IMAGE_MAP = {
   "Jeans": "https://img.joomcdn.net/bad4a5bc1a5d76e0eba415e65d96c7b569dcaa74_original.jpeg",
   "Cotton Pant": "https://thehouseofrare.com/cdn/shop/products/IMG_0313_4f8d3323-e94d-417e-8da0-4019b31249ff.jpg?v=1689145478",
   "Footwear": "https://i5.walmartimages.com/asr/1ff97059-331f-417e-bdd2-4efd1336ae00.c648244e6bfa27c296b8756a65dfe1ef.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF",
-  "Co-ords": "https://www.lovechoje.com/wp-content/uploads/2021/12/2-1.jpg",
+  "Co-ords": "https://i.pinimg.com/736x/ea/af/60/eaaf60ba914e1c2aef7ac0f566c1b973.jpg",
   "Watches": "https://avatars.mds.yandex.net/i?id=b1841c27fdec5cbfd117ecdbc635f7d1ad110da2-5008667-images-thumbs&n=13",
   "Track": "https://img.joomcdn.net/bda934a74d164ddd24acd823795571480d8ccf79_original.jpeg",
   "Caps": "https://cdn1.ozone.ru/s3/multimedia-r/6423413127.jpg",
-  "Jewellery": "https://mir-s3-cdn-cf.behance.net/project_modules/1400/6f9dc7127435607.6141dbb9547b7.jpg",
-  "Sunglasses": "https://cdn1.ozone.ru/s3/multimedia-u/6369036066.jpg",
+  "Jewellery": "https://images.tcdn.com.br/img/img_prod/1077394/kit_pulseira_masculina_de_couro_trancado_aco_inox_e_pedras_natural_olho_de_tigre_809_2_956b91509287483882316ef3c07f4bbf.jpg",
+  "Sunglasses": "https://cdnimpuls.com/o.anabel.al/media3/-785-0-5f311288b5232.png",
   "Wallets": "https://i.etsystatic.com/21490334/r/il/0be459/2377873457/il_794xN.2377873457_8hti.jpg",
-  "Combo set": "https://i.pinimg.com/originals/1f/21/29/1f212972bd20c4e855a6dd576630111e.jpg",
+  "Combo set": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcT9u0z4_AyddfScwmfZ0lryvGJHhyeTSq7qc9Vq5ioC9psVxoNp",
   "Pants": "https://i.ytimg.com/vi/emXL_7_xVRQ/maxresdefault.jpg",
-  "Shorts": "https://collectivegen.com/wp-content/uploads/2017/05/Four-Ways-to-Make-Cut-Off-Denim-Shorts-A-Pair-and-A-Spare-6-778x542@2x.jpg",
+  "Shorts": "https://img.joomcdn.net/1a21a3923b5d44859c71ee045f81fd020ffd5be4_original.jpeg",
   "Belt": "https://a.lmcdn.ru/pi/img600x866/M/P/MP002XW118Q3_11495663_9_v3_2x.jpg",
   "Suit": "https://fashionhot.club/uploads/posts/2022-11/1668782153_49-fashionhot-club-p-temno-serii-klassicheskii-kostyum-53.jpg",
   "Sherwani": "https://i.pinimg.com/originals/21/c5/b2/21c5b257e9871fae6249dd931e4f947c.jpg",
@@ -77,6 +78,7 @@ const CATEGORY_DISCOUNT_MAP = {
   "Jacket": "Jacket",
   "Perfume": "Perfume",
   "Lotion": "Lotion",
+  "Caps": "Caps",
 
 
   // Add or adjust discounts for other categories
