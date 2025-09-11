@@ -5,7 +5,6 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useCart } from "../context/CartContext.jsx";
 import bannerVideo from "../assets/banner.mp4";
-import compoimage from "../assets/composet.jpeg";
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
@@ -15,8 +14,14 @@ const api = axios.create({ baseURL: apiBase });
    Helper utilities
    -------------------------- */
 function slugify(txt = '') {
-  return String(txt).toLowerCase().replace(/\s+/g, '-');
+  // Make safe slugs: 'kids&boys' -> 'kids-boys'
+  return String(txt)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-') // replace non-alphanumeric (including & and spaces) with '-'
+    .replace(/^-+|-+$/g, '')     // trim leading/trailing dashes
+    .replace(/-+/g, '-');        // collapse multiple dashes
 }
+
 function imgUrl(path) {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -36,7 +41,7 @@ const CATEGORY_IMAGE_MAP = {
   "Watches": "https://avatars.mds.yandex.net/i?id=b1841c27fdec5cbfd117ecdbc635f7d1ad110da2-5008667-images-thumbs&n=13",
   "Track": "https://img.joomcdn.net/bda934a74d164ddd24acd823795571480d8ccf79_original.jpeg",
   "Caps": "https://cdn1.ozone.ru/s3/multimedia-r/6423413127.jpg",
-  "Jewellery": "https://images.tcdn.com.br/img/img_prod/1077394/kit_pulseira_masculina_de_couro_trancado_aco_inox_e_pedras_natural_olho_de_tigre_809_2_956b91509287483882316ef3c07f4bbf.jpg",
+  "Jewellery": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTn7-XnceHQIsAmp2DxWMJ9ipDfo1rO4rOl-aQU3o9E8hQvr_B0",
   "Sunglasses": "https://cdnimpuls.com/o.anabel.al/media3/-785-0-5f311288b5232.png",
   "Wallets": "https://i.etsystatic.com/21490334/r/il/0be459/2377873457/il_794xN.2377873457_8hti.jpg",
   "Combo set": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcT9u0z4_AyddfScwmfZ0lryvGJHhyeTSq7qc9Vq5ioC9psVxoNp",
@@ -51,6 +56,9 @@ const CATEGORY_IMAGE_MAP = {
   "Jacket": "https://avatars.mds.yandex.net/i?id=12467a8d9a2902b6eb71e9dbd656a905_l-5022489-images-thumbs&ref=rim&n=13&w=1500&h=2000",
   "Perfume": "https://i.pinimg.com/736x/da/93/25/da9325eab79b8f642caa0c15937735b9--product-photography-conceptual-photography.jpg",
   "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
+
+  // SINGLE combined category (exact name: "kids&boys")
+  "kids&boys": "https://avatars.mds.yandex.net/i?id=9c276447320e36d5b5f3d382bbbb07aa_l-8219723-images-thumbs&ref=rim&n=13&w=900&h=1200",
 };
 
 const CATEGORY_DISCOUNT_MAP = {
@@ -60,7 +68,6 @@ const CATEGORY_DISCOUNT_MAP = {
   "Footwear": "Footwear",
   "Watches": "Watches",
   "Shirt": "Shirt",
-  "Footwear": "Footwear",
   "Co-ords": "Co-ords",
   "Track": "Trackt",
   "Jewellery": "Jewellery",
@@ -80,8 +87,8 @@ const CATEGORY_DISCOUNT_MAP = {
   "Lotion": "Lotion",
   "Caps": "Caps",
 
-
-  // Add or adjust discounts for other categories
+  // NEW single label for combined kids & boys category
+  "kids&boys": "Kids & Boys",
 };
 
 const CATEGORY_IMAGE_FALLBACK = "https://via.placeholder.com/800x1000?text=Category+Image";
@@ -97,19 +104,32 @@ export default function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const categories = useMemo(() => ([
-    "Shirt","T-Shirt","Jeans","Cotton Pant","Footwear","Co-ords","Watches","Track","Caps",
-    "Jewellery","Sunglasses","Wallets","Combo set","Pants","Shorts","Belt","Suit","Sherwani",
-    "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Lotion",
-  ].filter((v, i, a) => a.indexOf(v) === i)), []);
+  // Build categories array — ensure exact "kids&boys" string is included.
+  const categories = useMemo(() => {
+    const list = [
+      "Shirt","T-Shirt","Jeans","Cotton Pant","Footwear","Co-ords","Watches","Track","Caps",
+      "Jewellery","Sunglasses","Wallets","Combo set","Pants","Shorts","Belt","Suit","Sherwani",
+      "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Lotion",
+      // <-- exact string the app should show
+      "kids&boys",
+    ];
+    // keep unique and return
+    const unique = list.filter((v, i, a) => a.indexOf(v) === i);
+    // debug: uncomment if you need to verify in browser console
+    // console.log('Home.jsx - categories:', unique);
+    return unique;
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('access');
     api.get('/api/products/', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then(res => setItems(res.data))
-      .catch(() => setItems([]))
+      .then(res => setItems(res.data || []))
+      .catch((err) => {
+        console.error('Failed to load products', err);
+        setItems([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -164,7 +184,11 @@ export default function Home() {
             {Array.isArray(categories) && categories.length > 0 ? (
               categories.map((category, index) => {
                 const categoryName = typeof category === 'string' ? category : (category.name || category.title || '');
-                const imgSrc = CATEGORY_IMAGE_MAP[categoryName] || CATEGORY_IMAGE_FALLBACK;
+                // lookup image by the exact category name; fallback to placeholder
+                const imgSrc = CATEGORY_IMAGE_MAP.hasOwnProperty(categoryName)
+                  ? CATEGORY_IMAGE_MAP[categoryName]
+                  : CATEGORY_IMAGE_FALLBACK;
+
                 const discount = CATEGORY_DISCOUNT_MAP[categoryName] || DEFAULT_DISCOUNT;
 
                 return (
@@ -173,6 +197,8 @@ export default function Home() {
                     key={`${categoryName}-${index}`}
                     onClick={() => goCategory(categoryName)}
                     role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => { if (e.key === 'Enter') goCategory(categoryName); }}
                   >
                     <div className="category-media" aria-hidden>
                       <img src={imgSrc} alt={categoryName} loading="lazy" />

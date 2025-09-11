@@ -35,7 +35,8 @@ function calcCartCount(items) {
   return items.length;
 }
 
-function Navbar() {
+export default function Navbar() {
+  // --- Hooks must all live inside the component body ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileDropdowns, setMobileDropdowns] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -44,6 +45,9 @@ function Navbar() {
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [menuError, setMenuError] = useState(null);
   const [cartCount, setCartCount] = useState(0);
+
+  // Search state
+  const [query, setQuery] = useState("");
 
   const menuRef = useRef(null);
   const navigate = useNavigate();
@@ -59,6 +63,7 @@ function Navbar() {
     setMobileDropdowns({});
   };
 
+  // Fetch products (used to build dynamic menu)
   useEffect(() => {
     const token = localStorage.getItem("access");
     setLoadingMenu(true);
@@ -90,6 +95,7 @@ function Navbar() {
     fetchProducts(false);
   }, []);
 
+  // Build dynamic menu items from product list
   const dynamicMenuItems = useMemo(() => {
     const byMain = new Map();
     for (const p of products) {
@@ -114,6 +120,7 @@ function Navbar() {
     return items;
   }, [products]);
 
+  // Monitor auth status (from localStorage)
   useEffect(() => {
     const checkLoginStatus = () => {
       const token = localStorage.getItem("access");
@@ -144,6 +151,7 @@ function Navbar() {
     };
   }, []);
 
+  // Track cart count and listen for cart updates
   useEffect(() => {
     const recompute = () => setCartCount(calcCartCount(readCart()));
     recompute();
@@ -184,6 +192,7 @@ function Navbar() {
     if (isMobileMenuOpen) setMobileDropdowns({});
   };
 
+  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -203,6 +212,7 @@ function Navbar() {
     };
   }, [isMobileMenuOpen]);
 
+  // Ensure mobile menu closes on resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 768 && isMobileMenuOpen) {
@@ -214,6 +224,19 @@ function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, [isMobileMenuOpen]);
 
+  // --- Search handler (navigates to category page which will use the query param)
+  const handleSearch = (e) => {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    const q = String(query || "").trim();
+    if (!q) return;
+    // Using the same pattern as goCategory but we want the raw query available to CategoryPage
+    navigate(`/category/${slugify(q)}`, { state: { raw: q } });
+    // optional: clear search input
+    setQuery("");
+    // close mobile menu if open
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <nav className="navbar">
       {/* ---- Top Section ---- */}
@@ -224,14 +247,18 @@ function Navbar() {
               <img src={panukLogo} alt="PAN UK Wedding Hub" className="logo-image" />
             </Link>
           </div>
+
           <div className="search-container">
             <input
               type="text"
               placeholder="Search products..."
               className="search-input"
               aria-label="Search products"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch(e)}
             />
-            <button className="search-btn" aria-label="Search">
+            <button className="search-btn" aria-label="Search" onClick={handleSearch}>
               <Search size={16} />
             </button>
           </div>
@@ -259,7 +286,6 @@ function Navbar() {
 
           <div className="cart" onClick={() => navigate("/cart")}>
             <div className="cart-icon">
-              {/* add a class so CSS can size/position reliably */}
               <ShoppingCart size={22} className="cart-svg" />
               {cartCount > 0 && (
                 <span className="cart-badge">{cartCount > 99 ? "99+" : cartCount}</span>
@@ -382,5 +408,3 @@ function Navbar() {
     </nav>
   );
 }
-
-export default Navbar;
