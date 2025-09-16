@@ -55,8 +55,7 @@ const CATEGORY_IMAGE_MAP = {
   "Dress code": "https://sc04.alicdn.com/kf/H5178d65553c9407395b9e46362f08b631/220502705/H5178d65553c9407395b9e46362f08b631.jpg",
   "Jacket": "https://avatars.mds.yandex.net/i?id=12467a8d9a2902b6eb71e9dbd656a905_l-5022489-images-thumbs&ref=rim&n=13&w=1500&h=2000",
   "Perfume": "https://i.pinimg.com/736x/da/93/25/da9325eab79b8f642caa0c15937735b9--product-photography-conceptual-photography.jpg",
-  "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
-
+   "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
   // SINGLE combined category (exact name: "kids&boys")
   "kids&boys": "https://avatars.mds.yandex.net/i?id=9c276447320e36d5b5f3d382bbbb07aa_l-8219723-images-thumbs&ref=rim&n=13&w=900&h=1200",
 };
@@ -86,7 +85,6 @@ const CATEGORY_DISCOUNT_MAP = {
   "Perfume": "Perfume",
   "Lotion": "Lotion",
   "Caps": "Caps",
-
   // NEW single label for combined kids & boys category
   "kids&boys": "Kids & Boys",
 };
@@ -115,8 +113,6 @@ export default function Home() {
     ];
     // keep unique and return
     const unique = list.filter((v, i, a) => a.indexOf(v) === i);
-    // debug: uncomment if you need to verify in browser console
-    // console.log('Home.jsx - categories:', unique);
     return unique;
   }, []);
 
@@ -171,6 +167,44 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* IMPORTED BANNER SECTION */}
+      <section className="imported-banner">
+  <div className="imported-split">
+    {/* LEFT SIDE IMAGE */}
+    <div className="imported-media">
+      <img
+        src="https://i.ytimg.com/vi/X3-sGrj40P4/maxresdefault.jpg"
+        alt="Imported Items"
+        loading="lazy"
+      />
+    </div>
+
+    {/* RIGHT SIDE CONTENT */}
+    <div className="imported-text">
+      <h2 className="imported-title">Exclusive Imported Collection</h2>
+      <p className="imported-subtitle">
+        Premium handpicked imports — limited stock, premium styles.
+      </p>
+      <div className="imported-actions">
+        <button
+          className="cta-button"
+          onClick={() => goCategory("Imported")}
+        >
+          Shop Imported
+        </button>
+
+        <button
+          className="btn outline secondary"
+          onClick={() => navigate('/all-products?filter=imported')}
+        >
+          View All Imported
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* CATEGORIES SECTION */}
       <section className="categories-section">
