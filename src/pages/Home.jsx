@@ -34,7 +34,7 @@ function imgUrl(path) {
 const CATEGORY_IMAGE_MAP = {
   "Shirt": "https://img.guess.com/image/upload/f_auto,q_auto,fl_strip_profile,e_sharpen:50,,w_800,c_scale/v1/EU/Style/ECOMM/M2YH44WERX0-G7V2",
   "T-Shirt": "https://avatars.mds.yandex.net/i?id=c6308da86b1d608d7b99f496d84fa24b2f6a26d6-5888219-images-thumbs&n=13",
-  "Jeans": "https://img.joomcdn.net/bad4a5bc1a5d76e0eba415e65d96c7b569dcaa74_original.jpeg",
+  "Jeans": "https://m.media-amazon.com/images/I/611cP0ehr5L._UY1000_.jpg",
   "Cotton Pant": "https://thehouseofrare.com/cdn/shop/products/IMG_0313_4f8d3323-e94d-417e-8da0-4019b31249ff.jpg?v=1689145478",
   "Footwear": "https://i5.walmartimages.com/asr/1ff97059-331f-417e-bdd2-4efd1336ae00.c648244e6bfa27c296b8756a65dfe1ef.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF",
   "Co-ords": "https://i.pinimg.com/736x/ea/af/60/eaaf60ba914e1c2aef7ac0f566c1b973.jpg",
