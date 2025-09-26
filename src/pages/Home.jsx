@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useCart } from "../context/CartContext.jsx";
 import bannerVideo from "../assets/banner.mp4";
+import HoverImageCarousel from "../components/HoverImageCarousel"; // ✅ NEW
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
@@ -55,8 +56,7 @@ const CATEGORY_IMAGE_MAP = {
   "Dress code": "https://sc04.alicdn.com/kf/H5178d65553c9407395b9e46362f08b631/220502705/H5178d65553c9407395b9e46362f08b631.jpg",
   "Jacket": "https://avatars.mds.yandex.net/i?id=12467a8d9a2902b6eb71e9dbd656a905_l-5022489-images-thumbs&ref=rim&n=13&w=1500&h=2000",
   "Perfume": "https://i.pinimg.com/736x/da/93/25/da9325eab79b8f642caa0c15937735b9--product-photography-conceptual-photography.jpg",
-   "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
-  // SINGLE combined category (exact name: "kids&boys")
+  "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
   "kids&boys": "https://avatars.mds.yandex.net/i?id=9c276447320e36d5b5f3d382bbbb07aa_l-8219723-images-thumbs&ref=rim&n=13&w=900&h=1200",
 };
 
@@ -85,7 +85,6 @@ const CATEGORY_DISCOUNT_MAP = {
   "Perfume": "Perfume",
   "Lotion": "Lotion",
   "Caps": "Caps",
-  // NEW single label for combined kids & boys category
   "kids&boys": "Kids & Boys",
 };
 
@@ -107,11 +106,8 @@ export default function Home() {
     const list = [
       "Shirt","T-Shirt","Jeans","Cotton Pant","Footwear","Co-ords","Watches","Track","Caps",
       "Jewellery","Sunglasses","Wallets","Combo set","Pants","Shorts","Belt","Suit","Sherwani",
-      "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Lotion",
-      // <-- exact string the app should show
-      "kids&boys",
+      "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Lotion","kids&boys",
     ];
-    // keep unique and return
     const unique = list.filter((v, i, a) => a.indexOf(v) === i);
     return unique;
   }, []);
@@ -122,10 +118,7 @@ export default function Home() {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(res => setItems(res.data || []))
-      .catch((err) => {
-        console.error('Failed to load products', err);
-        setItems([]);
-      })
+      .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -170,41 +163,35 @@ export default function Home() {
 
       {/* IMPORTED BANNER SECTION */}
       <section className="imported-banner">
-  <div className="imported-split">
-    {/* LEFT SIDE IMAGE */}
-    <div className="imported-media">
-      <img
-        src="https://i.ytimg.com/vi/X3-sGrj40P4/maxresdefault.jpg"
-        alt="Imported Items"
-        loading="lazy"
-      />
-    </div>
+        <div className="imported-split">
+          <div className="imported-media">
+            <img
+              src="https://i.ytimg.com/vi/X3-sGrj40P4/maxresdefault.jpg"
+              alt="Imported Items"
+              loading="lazy"
+            />
+          </div>
 
-    {/* RIGHT SIDE CONTENT */}
-    <div className="imported-text">
-      <h2 className="imported-title">Exclusive Imported Collection</h2>
-      <p className="imported-subtitle">
-        Premium handpicked imports — limited stock, premium styles.
-      </p>
-      <div className="imported-actions">
-        <button
-          className="cta-button"
-          onClick={() => goCategory("Imported")}
-        >
-          Shop Imported
-        </button>
+          <div className="imported-text">
+            <h2 className="imported-title">Exclusive Imported Collection</h2>
+            <p className="imported-subtitle">
+              Premium handpicked imports — limited stock, premium styles.
+            </p>
+            <div className="imported-actions">
+              <button className="cta-button" onClick={() => goCategory("Imported")}>
+                Shop Imported
+              </button>
 
-        <button
-          className="btn outline secondary"
-          onClick={() => navigate('/all-products?filter=imported')}
-        >
-          View All Imported
-        </button>
-      </div>
-    </div>
-  </div>
-</section>
-
+              <button
+                className="btn outline secondary"
+                onClick={() => navigate('/all-products?filter=imported')}
+              >
+                View All Imported
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CATEGORIES SECTION */}
       <section className="categories-section">
@@ -218,7 +205,6 @@ export default function Home() {
             {Array.isArray(categories) && categories.length > 0 ? (
               categories.map((category, index) => {
                 const categoryName = typeof category === 'string' ? category : (category.name || category.title || '');
-                // lookup image by the exact category name; fallback to placeholder
                 const imgSrc = CATEGORY_IMAGE_MAP.hasOwnProperty(categoryName)
                   ? CATEGORY_IMAGE_MAP[categoryName]
                   : CATEGORY_IMAGE_FALLBACK;
@@ -266,86 +252,81 @@ export default function Home() {
             <p className="section-subtitle">Handpicked just for you</p>
           </div>
 
-          <div className="products-grid">
-            {loading ? (
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p className="loading-text">Loading products...</p>
-              </div>
-            ) : (
-              items.slice(0, 16).map((p) => {
-                const first = p.images?.[0];
-                const src = first ? (first.url || imgUrl(first.image)) : '';
-                return (
-                  <div
-                    className="product-card"
-                    key={p.id}
-                    onClick={() => goProduct(p.id)}
-                  >
-                    <div className="product-image">
-                      {src ? (
-                        <img src={src} alt={p.name} loading="lazy" />
-                      ) : (
-                        <img src="https://via.placeholder.com/400x500?text=No+Image" alt={p.name} loading="lazy" />
-                      )}
+        <div className="products-grid">
+          {loading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p className="loading-text">Loading products...</p>
+            </div>
+          ) : (
+            items.slice(0, 16).map((p) => {
+              const imgs = (p.images || []).map((im) => im?.url || imgUrl(im?.image));
+              return (
+                <div
+                  className="product-card"
+                  key={p.id}
+                  onClick={() => goProduct(p.id)}
+                >
+                  <div className="product-image">
+                    <HoverImageCarousel images={imgs} alt={p.name} />
 
-                      <div className="product-overlay">
+                    <div className="product-overlay">
+                      <button
+                        className="btn ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          goProduct(p.id);
+                        }}
+                      >
+                        Quick View
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="product-info">
+                    <h3 className="product-title" title={p.name}>{p.name}</h3>
+
+                    <div className="product-meta">
+                      {p.brand && <span className="brand">{p.brand}</span>}
+                      {(p.main_category || p.sub_category) && (
+                        <div className="product-categories">
+                          {p.main_category && (
+                            <span className="category-tag main">{p.main_category}</span>
+                          )}
+                          {p.sub_category && (
+                            <span className="category-tag sub">{p.sub_category}</span>
+                          )}
+                        </div>
+                      )}
+                      {p.description && (
+                        <p className="product-desc">
+                          {String(p.description).slice(0, 70)}
+                          {String(p.description).length > 70 ? '…' : ''}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="product-bottom">
+                      <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
+
+                      <div className="actions">
                         <button
-                          className="btn ghost"
+                          className="btn outline"
                           onClick={(e) => {
                             e.stopPropagation();
                             goProduct(p.id);
                           }}
                         >
-                          Quick View
+                          Details
                         </button>
                       </div>
                     </div>
-
-                    <div className="product-info">
-                      <h3 className="product-title" title={p.name}>{p.name}</h3>
-
-                      <div className="product-meta">
-                        {p.brand && <span className="brand">{p.brand}</span>}
-                        {(p.main_category || p.sub_category) && (
-                          <div className="product-categories">
-                            {p.main_category && (
-                              <span className="category-tag main">{p.main_category}</span>
-                            )}
-                            {p.sub_category && (
-                              <span className="category-tag sub">{p.sub_category}</span>
-                            )}
-                          </div>
-                        )}
-                        {p.description && (
-                          <p className="product-desc">
-                            {String(p.description).slice(0, 70)}
-                            {String(p.description).length > 70 ? '…' : ''}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="product-bottom">
-                        <div className="product-price">₹ {Number(p.price).toFixed(2)}</div>
-
-                        <div className="actions">
-                          <button
-                            className="btn outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              goProduct(p.id);
-                            }}
-                          >
-                            Details
-                          </button>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                );
-              })
-            )}
-          </div>
+                </div>
+              );
+            })
+          )}
+        </div>
 
           <div className="view-all-products">
             <button

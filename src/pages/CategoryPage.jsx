@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import HoverImageCarousel from "../components/HoverImageCarousel"; // ✅ NEW
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
@@ -62,25 +63,20 @@ export default function CategoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // If Navbar sent the raw name through state, use it. Fallback to deslug from URL.
-  // Examples:
-  //  - "Jeans"
-  //  - "Men's Wear Jeans"
-  //  - "Kids and Boys Jeans"
+  // Use raw name from state if available; fallback to slug
   const categoryName = (location.state && location.state.raw) || deslugify(slug || '');
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Track which products are currently in the cart (by key) for instant button toggle
+  // Track products in cart (by key)
   const [cartKeys, setCartKeys] = useState(() => {
     const cart = readJSON('cart', []);
     return new Set(cart.map((c) => c.key));
   });
 
-  // Toast message for add/remove feedback (simple, single-toast for the page)
+  // Simple toast
   const [toast, setToast] = useState('');
-
   const showToast = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2000);
@@ -108,7 +104,6 @@ export default function CategoryPage() {
     setCartKeys(new Set(cart.map((c) => c.key)));
   }, []);
 
-  // Listen for cart changes from other components/tabs
   useEffect(() => {
     const onUpdated = () => recomputeCartKeys();
     const onStorage = (e) => {
@@ -122,15 +117,7 @@ export default function CategoryPage() {
     };
   }, [recomputeCartKeys]);
 
-  /**
-   * Category-aware filtering:
-   * - If user navigated with "Main Sub" (e.g., "Men's Wear Jeans"),
-   *   only show products where BOTH main_category and sub_category match.
-   * - If user navigated with just a parent (e.g., "Men's Wear"),
-   *   match main_category only.
-   * - If user navigated with just a sub (e.g., "Jeans"),
-   *   match sub_category only.
-   */
+  // Category-aware filtering (same as your original)
   const filtered = useMemo(() => {
     const c = categoryName.trim().toLowerCase();
 
@@ -141,22 +128,19 @@ export default function CategoryPage() {
         ? [c.substring(0, c.lastIndexOf(' ')), c.substring(c.lastIndexOf(' ') + 1)]
         : [c, ''];
 
-      // If title contains both main and sub, require both to match
       if (maybeMain && maybeSub) {
         return main.includes(maybeMain) && sub.includes(maybeSub);
       }
 
-      // If the string matches a known main category term, filter by main
       if (['men', 'mens', "men's wear", 'kids', 'boys', 'kidsboys', 'unisex', 'imported', 'wedding', 'weddinghub'].some((k) => c.includes(k))) {
         return main.includes(maybeMain);
       }
 
-      // otherwise treat as sub-only search
       return sub.includes(c);
     });
   }, [items, categoryName]);
 
-  // --- ADD / REMOVE CART on the category cards (mirror logic from ProductDetail) ---
+  // ADD / REMOVE CART
   const addToCart = (p, imageUrl) => {
     const key = cartKey(p);
     const baseItem = {
@@ -207,7 +191,6 @@ export default function CategoryPage() {
         window.dispatchEvent(new CustomEvent('cart:updated', { detail: { key, qtyAdded: 1 } }));
       } catch {}
 
-      // ------ NEW: persist to server if JWT available ------
       const token = getToken();
       if (token && p?.id) {
         api.post(
@@ -223,13 +206,11 @@ export default function CategoryPage() {
           }
         }).catch(() => {});
       }
-      // ------------------------------------------------------
     } else {
       showToast('Could not add to cart.');
     }
   };
 
-  // Remove ENTIRE ITEM (toggle back to "Add to Cart")
   const removeFromCart = (p) => {
     const key = cartKey(p);
     let cart = readJSON('cart', []);
@@ -255,7 +236,6 @@ export default function CategoryPage() {
         window.dispatchEvent(new CustomEvent('cart:updated', { detail: { key, qtyRemoved } }));
       } catch {}
 
-      // ------ NEW: remove on server if JWT available ------
       const token = getToken();
       if (token && p?.id) {
         const map = getIdMap();
@@ -264,7 +244,6 @@ export default function CategoryPage() {
         const doDelete = (id) => api.delete(`/api/cart/items/${id}/remove/`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(() => {
-          // clear mapping if fully removed locally
           const left = readJSON('cart', []).find((x) => x.id === p.id);
           if (!left) {
             const m = getIdMap();
@@ -283,7 +262,6 @@ export default function CategoryPage() {
             }).catch(() => {});
         }
       }
-      // ----------------------------------------------------
     } else {
       showToast('Could not remove from cart.');
     }
@@ -305,7 +283,7 @@ export default function CategoryPage() {
             {filtered.map((p) => {
               const key = cartKey(p);
               const inCart = cartKeys.has(key);
-              const src = p.image ? imgUrl(p.image) : (p.images?.[0] ? getImageUrl(p.images[0]) : '');
+              const imgs = (p.images || []).map((im) => im?.url || getImageUrl(im));
 
               return (
                 <div
@@ -314,7 +292,7 @@ export default function CategoryPage() {
                   onClick={() => navigate(`/product/${p.id}`)}
                 >
                   <div className="product-image">
-                    <img src={src} alt={p.name} loading="lazy" />
+                    <HoverImageCarousel images={imgs} alt={p.name} />
                   </div>
 
                   <div className="product-info">
@@ -333,7 +311,6 @@ export default function CategoryPage() {
                       <div className="product-price">₹ {Number(p.price ?? 0).toFixed(2)}</div>
                     </div>
 
-                    {/* Extra details like the Product Detail page */}
                     <div className="product-meta">
                       {p.model_name ? (
                         <div className="meta-row">
@@ -379,7 +356,7 @@ export default function CategoryPage() {
                       ) : (
                         <button
                           className="pd-btn pd-btn--primary"
-                          onClick={(e) => { e.stopPropagation(); addToCart(p, src); }}
+                          onClick={(e) => { e.stopPropagation(); addToCart(p, imgs?.[0]); }}
                           title="Add this item to cart"
                         >
                           Add to Cart
