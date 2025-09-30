@@ -22,7 +22,7 @@ export default function ProductForm() {
     cotton_percentage: '',
     color: '',
     size: [],
-    footwear_size: [], // NEW footwear sizes
+    footwear_size: [],
     weight: '',
     description: '',
   });
@@ -38,9 +38,71 @@ export default function ProductForm() {
 
   const onChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   
-  const onFileChange = (e) => {
-    const newFiles = Array.from(e.target.files || []);
-    setImages(newFiles);
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Max dimensions
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              resolve(new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              }));
+            },
+            'image/jpeg',
+            0.8 // Quality 80%
+          );
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const onFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    setErrors(prev => ({ ...prev, imageCompression: 'Compressing images...' }));
+    
+    try {
+      const compressedFiles = await Promise.all(
+        files.map(file => compressImage(file))
+      );
+      setImages(compressedFiles);
+      setErrors(prev => {
+        const { imageCompression, ...rest } = prev;
+        return rest;
+      });
+    } catch (err) {
+      setErrors(prev => ({ ...prev, imageCompression: 'Failed to compress images' }));
+    }
   };
 
   const removeImage = (indexToRemove) => {
@@ -66,42 +128,77 @@ export default function ProductForm() {
   };
 
   const submit = async (e) => {
-  e.preventDefault();
-  const eobj = validate();
-  setErrors(eobj);
-  if (Object.keys(eobj).length) return;
+    e.preventDefault();
+    const eobj = validate();
+    setErrors(eobj);
+    if (Object.keys(eobj).length) return;
 
-  setSaving(true);
-  try {
-    const fd = new FormData();
+    setSaving(true);
+    try {
+      const fd = new FormData();
 
-Object.entries(form).forEach(([k, v]) => {
-  if (Array.isArray(v)) {
-    // send arrays as JSON strings
-    fd.append(k, JSON.stringify(v));
-  } else {
-    fd.append(k, v ?? '');
-  }
-});
-images.forEach(file => fd.append('images', file));
+      // Send simple fields as strings
+      fd.append('name', form.name ?? '');
+      fd.append('main_category', form.main_category ?? '');
+      fd.append('sub_category', form.sub_category ?? '');
+      fd.append('price', String(form.price ?? ''));
+      fd.append('brand', form.brand ?? '');
+      fd.append('material', form.material ?? '');
+      fd.append('model_name', form.model_name ?? '');
+      fd.append('cotton_percentage', String(form.cotton_percentage ?? ''));
+      fd.append('color', form.color ?? '');
+      fd.append('weight', form.weight ?? '');
+      fd.append('description', form.description ?? '');
+      
+      // Convert size arrays to comma-separated strings
+      if (Array.isArray(form.size) && form.size.length > 0) {
+        fd.append('size', form.size.join(','));
+      } else {
+        fd.append('size', '');
+      }
+      
+      if (Array.isArray(form.footwear_size) && form.footwear_size.length > 0) {
+        fd.append('footwear_size', form.footwear_size.join(','));
+      } else {
+        fd.append('footwear_size', '');
+      }
+      
+      // Add images
+      images.forEach(file => fd.append('images', file));
 
-    const token = localStorage.getItem('access');
-    await api.post('/api/products/', fd, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+      const token = localStorage.getItem('access');
+      const response = await api.post('/api/products/', fd, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-    navigate('/admin/products');
-  } catch (err) {
-    setErrors({ general: err.response?.data?.detail || 'Failed to save product' });
-  } finally {
-    setSaving(false);
-  }
-};
-
-
+      console.log('Success:', response.data);
+      navigate('/admin/products');
+    } catch (err) {
+      console.error('Full error:', err);
+      console.error('Response data:', err.response?.data);
+      
+      // Show detailed error message
+      let errorMessage = 'Failed to save product';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else {
+          errorMessage = JSON.stringify(err.response.data, null, 2);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setErrors({ general: errorMessage });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <AdminLayout active="products">
@@ -117,7 +214,9 @@ images.forEach(file => fd.append('images', file));
         </div>
 
         {errors.general && (
-          <div className="general-error">{errors.general}</div>
+          <div className="general-error" style={{ whiteSpace: 'pre-wrap' }}>
+            {errors.general}
+          </div>
         )}
 
         <form onSubmit={submit} className={saving ? 'loading' : ''}>
@@ -221,31 +320,30 @@ images.forEach(file => fd.append('images', file));
               />
             </div>
 
-            <div className="two-col">
-  <div className="form-group">
-    <label>Model name <span className="optional">(optional)</span></label>
-    <input
-      name="model_name"
-      value={form.model_name}
-      onChange={onChange}
-      placeholder="e.g., 511 Slim, Air Max 90"
-    />
-  </div>
+            <div className="form-group">
+              <label>Model Name <span className="optional">(optional)</span></label>
+              <input
+                name="model_name"
+                value={form.model_name}
+                onChange={onChange}
+                placeholder="e.g., 511 Slim, Air Max 90"
+              />
+            </div>
+          </div>
 
-  <div className="form-group">
-    <label>Cotton percentage <span className="optional">(optional)</span></label>
-    <input
-      name="cotton_percentage"
-      type="number"
-      min="0"
-      max="100"
-      value={form.cotton_percentage}
-      onChange={onChange}
-      placeholder="e.g., 80"
-    />
-  </div>
-</div>
-
+          <div className="two-col">
+            <div className="form-group">
+              <label>Cotton Percentage <span className="optional">(optional)</span></label>
+              <input
+                name="cotton_percentage"
+                type="number"
+                min="0"
+                max="100"
+                value={form.cotton_percentage}
+                onChange={onChange}
+                placeholder="e.g., 80"
+              />
+            </div>
 
             <div className="form-group">
               <label>
@@ -265,63 +363,67 @@ images.forEach(file => fd.append('images', file));
               <label>
                 Size <span className="optional">(optional)</span>
               </label>
-              {["S", "M", "L", "XL", "XXL"].map((sz) => (
-                <label key={sz} style={{ marginRight: "10px" }}>
-                  <input
-                    type="checkbox"
-                    value={sz}
-                    checked={form.size.includes(sz)}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setForm((prev) => {
-                        const newSizes = prev.size.includes(value)
-                          ? prev.size.filter((s) => s !== value)
-                          : [...prev.size, value];
-                        return { ...prev, size: newSizes };
-                      });
-                    }}
-                  />
-                  {sz}
-                </label>
-              ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {["S", "M", "L", "XL", "XXL"].map((sz) => (
+                  <label key={sz} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <input
+                      type="checkbox"
+                      value={sz}
+                      checked={form.size.includes(sz)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm((prev) => {
+                          const newSizes = prev.size.includes(value)
+                            ? prev.size.filter((s) => s !== value)
+                            : [...prev.size, value];
+                          return { ...prev, size: newSizes };
+                        });
+                      }}
+                    />
+                    {sz}
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="form-group">
-    <label>
-      Footwear Size <span className="optional">(optional)</span>
-    </label>
-    {["6", "7", "8", "9", "10", "11"].map((sz) => (
-      <label key={sz} style={{ marginRight: "10px" }}>
-        <input
-          type="checkbox"
-          value={sz}
-          checked={form.footwear_size.includes(sz)}
-          onChange={(e) => {
-            const value = e.target.value;
-            setForm((prev) => {
-              const newSizes = prev.footwear_size.includes(value)
-                ? prev.footwear_size.filter((s) => s !== value)
-                : [...prev.footwear_size, value];
-              return { ...prev, footwear_size: newSizes };
-            });
-          }}
-        />
-        {sz}
-      </label>
-    ))}
-  </div>
-
 
             <div className="form-group">
               <label>
-                Weight <span className="optional">(optional)</span>
+                Footwear Size <span className="optional">(optional)</span>
               </label>
-              <input 
-                name="weight" 
-                value={form.weight} 
-                onChange={onChange} 
-                placeholder="e.g., 250g"
-              />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {["6", "7", "8", "9", "10", "11"].map((sz) => (
+                  <label key={sz} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <input
+                      type="checkbox"
+                      value={sz}
+                      checked={form.footwear_size.includes(sz)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm((prev) => {
+                          const newSizes = prev.footwear_size.includes(value)
+                            ? prev.footwear_size.filter((s) => s !== value)
+                            : [...prev.footwear_size, value];
+                          return { ...prev, footwear_size: newSizes };
+                        });
+                      }}
+                    />
+                    {sz}
+                  </label>
+                ))}
+              </div>
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>
+              Weight <span className="optional">(optional)</span>
+            </label>
+            <input 
+              name="weight" 
+              value={form.weight} 
+              onChange={onChange} 
+              placeholder="e.g., 250g"
+            />
           </div>
 
           <div className="form-group">

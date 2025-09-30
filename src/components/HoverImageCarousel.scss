@@ -1,0 +1,83 @@
+.hover-image-carousel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .carousel-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; // Show full image without cropping
+    object-position: center;
+    transition: opacity 0.2s ease;
+  }
+
+  .carousel-indicators {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 2;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+
+    .indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &.active {
+        background: white;
+        width: 20px;
+        border-radius: 3px;
+      }
+    }
+  }
+
+  &:hover .carousel-indicators {
+    opacity: 1;
+  }
+}
+
+.hover-carousel-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
+// Alternative: If you want images to fill but show more
+.hover-image-carousel-fill {
+  .carousel-image {
+    object-fit: cover; // Fills the space
+    object-position: center top; // Shows more from top
+  }
+}
+
+// Option for scaling on hover
+.hover-image-carousel-scale {
+  .carousel-image {
+    transition: transform 0.3s ease;
+  }
+
+  &:hover .carousel-image {
+    transform: scale(1.05);
+  }
+}
