@@ -255,7 +255,7 @@ export default function ProductDetail() {
 
                 <a
                   className="pd-btn pd-btn--outline"
-                  href={`https://wa.me/919999999999?text=${encodeURIComponent(`Hi! I am interested in ${product.name}`)}`}
+                  href={`https://wa.me/918921816174?text=${encodeURIComponent(`Hi! I am interested in ${product.name}`)}`}
                   target="_blank"
                   rel="noreferrer"
                 >

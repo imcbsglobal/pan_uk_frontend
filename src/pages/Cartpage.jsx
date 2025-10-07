@@ -134,7 +134,7 @@ export default function CartPage() {
     });
     message += `Subtotal: ₹${subtotal.toFixed(2)}`;
 
-    const url = `https://wa.me/918129139506?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/918921816174?text=${encodeURIComponent(message)}`;
     const opened = window.open(url, '_blank');
     if (!opened) alert('Please allow popups and try again.');
   };
