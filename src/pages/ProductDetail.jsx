@@ -188,6 +188,39 @@ export default function ProductDetail() {
 
   const mainImage = images[activeIdx] || '';
 
+  // Build WhatsApp message
+  const additionalDetails = Object.entries(product)
+    .filter(([key]) =>
+      !['id', 'name', 'price', 'description', 'images', 'image', 'thumbnail', 'created_at', 'category', 'sub_category', 'brand'].includes(key)
+    )
+    .map(([key, value]) => {
+      let displayValue;
+      if (Array.isArray(value)) {
+        displayValue = value.join(', ');
+      } else if (typeof value === 'object' && value !== null) {
+        displayValue = JSON.stringify(value);
+      } else {
+        displayValue = String(value);
+      }
+      return `${key.replace(/_/g, ' ')}: ${displayValue}`;
+    })
+    .join('\n');
+
+  const whatsappMessage = `
+🛒 *Order Summary*
+--------------------
+📦 Product: ${product.name}
+💰 Price: ₹${Number(product.price || 0).toFixed(2)}
+🏷️ Category: ${product.category || 'N/A'}
+🎨 Color: ${product.color || 'N/A'}
+🏢 Brand: ${product.brand || 'N/A'}
+
+📝 Description:
+${product.description || '—'}
+
+${additionalDetails ? `🔎 Other Details:\n${additionalDetails}` : ''}
+`;
+
   return (
     <>
       <Navbar />
@@ -255,12 +288,12 @@ export default function ProductDetail() {
 
                 <a
                   className="pd-btn pd-btn--outline"
-                  href={`https://wa.me/918921816174?text=${encodeURIComponent(`Hi! I am interested in ${product.name}`)}`}
+                  href={`https://wa.me/918921816174?text=${encodeURIComponent(whatsappMessage)}`}
                   target="_blank"
                   rel="noreferrer"
                 >
                   <FaWhatsapp size={18} />
-                  <span>Chat</span>
+                  <span>Order via WhatsApp</span>
                 </a>
               </div>
             </div>
@@ -314,4 +347,3 @@ export default function ProductDetail() {
     </>
   );
 }
-
