@@ -1,3 +1,4 @@
+// ProductsList.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -25,6 +26,18 @@ api.interceptors.response.use(
   }
 );
 
+// --- Local override helpers (localStorage) ---------------------------------
+const availabilityKey = (productId) => `availability_override:${productId}`;
+function readAvailabilityOverride(productId) {
+  try {
+    const v = localStorage.getItem(availabilityKey(productId));
+    if (v === null) return null;
+    return v === 'true';
+  } catch {
+    return null;
+  }
+}
+
 export default function ProductsList() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +64,16 @@ export default function ProductsList() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  // Force re-render when availability override changes so badges update
+  useEffect(() => {
+    const onAvail = (e) => {
+      // shallow clone items to trigger re-render; data is still from server
+      setItems((prev) => prev.slice());
+    };
+    window.addEventListener('availability:changed', onAvail);
+    return () => window.removeEventListener('availability:changed', onAvail);
   }, []);
 
   const subOptions = useMemo(() => {
@@ -212,6 +235,11 @@ export default function ProductsList() {
               const first = p.images?.[0];
               const src = first ? (first.url || imgUrl(first.image)) : '';
               const isDeleting = deletingId === p.id;
+
+              // prefer override if present
+              const override = readAvailabilityOverride(p.id);
+              const isAvailable = override === null ? (p.available !== false) : override;
+
               return (
                 <div className="product-card" key={p.id}>
                   <div
@@ -234,6 +262,12 @@ export default function ProductsList() {
                       <span className="badge">{p.main_category}</span>
                       {p.sub_category && (
                         <span className="badge badge--sub">{p.sub_category}</span>
+                      )}
+                      {/* AVAILABILITY BADGE */}
+                      {!isAvailable ? (
+                        <span className="badge badge--danger" style={{ marginLeft: 8 }}>Out of stock</span>
+                      ) : (
+                        <span className="badge badge--success" style={{ marginLeft: 8 }}>In stock</span>
                       )}
                     </div>
                     <div className="product-card__price">
@@ -258,7 +292,7 @@ export default function ProductsList() {
                       className="btn btn--danger"
                       onClick={() => handleDelete(p.id)}
                       disabled={isDeleting}
-                      title={isDeleting ? 'Deleting…' : 'Delete'}
+                      style={{ marginLeft: 8 }}
                     >
                       {isDeleting ? 'Deleting…' : 'Delete'}
                     </button>

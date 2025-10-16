@@ -1,3 +1,4 @@
+// src/pages/ProductForm.jsx
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -25,7 +26,10 @@ export default function ProductForm() {
     footwear_size: [],
     weight: '',
     description: '',
+    available: true, // NEW: whether product is available for sale
+    stock: 0,        // NEW: available stock quantity (non-negative integer)
   });
+
   const [images, setImages] = useState([]);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -36,8 +40,16 @@ export default function ProductForm() {
     setForm(prev => ({ ...prev, sub_category: '' }));
   }, [form.main_category]);
 
-  const onChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  
+  const onChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setForm(prev => ({ ...prev, [name]: checked }));
+      return;
+    }
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Image compression helper
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -46,14 +58,14 @@ export default function ProductForm() {
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          
+
           // Max dimensions
           const MAX_WIDTH = 1200;
           const MAX_HEIGHT = 1200;
-          
+
           let width = img.width;
           let height = img.height;
-          
+
           if (width > height) {
             if (width > MAX_WIDTH) {
               height *= MAX_WIDTH / width;
@@ -65,13 +77,15 @@ export default function ProductForm() {
               height = MAX_HEIGHT;
             }
           }
-          
+
           canvas.width = width;
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
-          
+
           canvas.toBlob(
             (blob) => {
+              // If canvas.toBlob failed, fallback to original file
+              if (!blob) return resolve(file);
               resolve(new File([blob], file.name, {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
@@ -81,27 +95,38 @@ export default function ProductForm() {
             0.8 // Quality 80%
           );
         };
+        img.onerror = () => {
+          // on error fallback to original file
+          resolve(file);
+        };
         img.src = e.target.result;
       };
+      reader.onerror = () => resolve(file);
       reader.readAsDataURL(file);
     });
   };
 
   const onFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     setErrors(prev => ({ ...prev, imageCompression: 'Compressing images...' }));
-    
+
     try {
       const compressedFiles = await Promise.all(
         files.map(file => compressImage(file))
       );
-      setImages(compressedFiles);
+      // append to existing images (allow adding multiple times)
+      setImages(prev => [...prev, ...compressedFiles]);
       setErrors(prev => {
         const { imageCompression, ...rest } = prev;
         return rest;
       });
     } catch (err) {
+      console.error('Compression error', err);
       setErrors(prev => ({ ...prev, imageCompression: 'Failed to compress images' }));
+    } finally {
+      // clear file input so the same file can be selected again
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -124,11 +149,17 @@ export default function ProductForm() {
     if (!form.sub_category) e.sub_category = 'Sub Category is required';
     if (!form.price || isNaN(Number(form.price))) e.price = 'Valid price is required';
     if (Number(form.price) <= 0) e.price = 'Price must be greater than 0';
+    // Validate stock
+    if (form.stock === '' || form.stock === null || isNaN(Number(form.stock))) {
+      e.stock = 'Stock must be a number (0 or greater)';
+    } else if (Number(form.stock) < 0 || !Number.isInteger(Number(form.stock))) {
+      e.stock = 'Stock must be a non-negative integer';
+    }
     return e;
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const submit = async (ev) => {
+    ev.preventDefault();
     const eobj = validate();
     setErrors(eobj);
     if (Object.keys(eobj).length) return;
@@ -149,37 +180,40 @@ export default function ProductForm() {
       fd.append('color', form.color ?? '');
       fd.append('weight', form.weight ?? '');
       fd.append('description', form.description ?? '');
-      
+
+      // new availability fields
+      fd.append('available', form.available ? 'true' : 'false');
+      fd.append('stock', String(Number(form.stock || 0)));
+
       // Convert size arrays to comma-separated strings
       if (Array.isArray(form.size) && form.size.length > 0) {
         fd.append('size', form.size.join(','));
       } else {
         fd.append('size', '');
       }
-      
+
       if (Array.isArray(form.footwear_size) && form.footwear_size.length > 0) {
         fd.append('footwear_size', form.footwear_size.join(','));
       } else {
         fd.append('footwear_size', '');
       }
-      
-      // Add images
-      images.forEach(file => fd.append('images', file));
+
+      // Add images (multiple)
+      images.forEach(file => fd.append('images', file, file.name));
 
       const token = localStorage.getItem('access');
       const response = await api.post('/api/products/', fd, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        // DO NOT set Content-Type; browser sets boundary automatically
       });
 
       console.log('Success:', response.data);
+      // navigate to the admin products list (or to product detail if you prefer)
       navigate('/admin/products');
     } catch (err) {
       console.error('Full error:', err);
       console.error('Response data:', err.response?.data);
-      
+
       // Show detailed error message
       let errorMessage = 'Failed to save product';
       if (err.response?.data) {
@@ -193,7 +227,7 @@ export default function ProductForm() {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setErrors({ general: errorMessage });
     } finally {
       setSaving(false);
@@ -205,7 +239,7 @@ export default function ProductForm() {
       <div className="product-form">
         <div className="top-bar">
           <h2>Add New Product</h2>
-          <button 
+          <button
             className="back-link-btn"
             onClick={() => navigate('/admin/products')}
           >
@@ -225,10 +259,10 @@ export default function ProductForm() {
               <label>
                 Main Category <span className="required">*</span>
               </label>
-              <select 
-                name="main_category" 
-                value={form.main_category} 
-                onChange={onChange} 
+              <select
+                name="main_category"
+                value={form.main_category}
+                onChange={onChange}
                 required
               >
                 {MAIN_CATEGORIES.map(c => (
@@ -244,10 +278,10 @@ export default function ProductForm() {
               <label>
                 Sub Category <span className="required">*</span>
               </label>
-              <select 
-                name="sub_category" 
-                value={form.sub_category} 
-                onChange={onChange} 
+              <select
+                name="sub_category"
+                value={form.sub_category}
+                onChange={onChange}
                 required
               >
                 <option value="" disabled>Select a sub-category...</option>
@@ -265,11 +299,11 @@ export default function ProductForm() {
             <label>
               Product Name <span className="required">*</span>
             </label>
-            <input 
-              name="name" 
-              value={form.name} 
-              onChange={onChange} 
-              placeholder="e.g., Classic Slim Fit Cotton Shirt" 
+            <input
+              name="name"
+              value={form.name}
+              onChange={onChange}
+              placeholder="e.g., Classic Slim Fit Cotton Shirt"
             />
             {errors.name && (
               <div className="error-text">{errors.name}</div>
@@ -281,13 +315,13 @@ export default function ProductForm() {
               <label>
                 Price <span className="required">*</span>
               </label>
-              <input 
-                name="price" 
-                type="number" 
-                step="0.01" 
-                value={form.price} 
-                onChange={onChange} 
-                placeholder="e.g., 999.00" 
+              <input
+                name="price"
+                type="number"
+                step="0.01"
+                value={form.price}
+                onChange={onChange}
+                placeholder="e.g., 999.00"
               />
               {errors.price && (
                 <div className="error-text">{errors.price}</div>
@@ -298,10 +332,10 @@ export default function ProductForm() {
               <label>
                 Brand <span className="optional">(optional)</span>
               </label>
-              <input 
-                name="brand" 
-                value={form.brand} 
-                onChange={onChange} 
+              <input
+                name="brand"
+                value={form.brand}
+                onChange={onChange}
                 placeholder="e.g., Nike, Adidas"
               />
             </div>
@@ -312,10 +346,10 @@ export default function ProductForm() {
               <label>
                 Material <span className="optional">(optional)</span>
               </label>
-              <input 
-                name="material" 
-                value={form.material} 
-                onChange={onChange} 
+              <input
+                name="material"
+                value={form.material}
+                onChange={onChange}
                 placeholder="e.g., 100% Cotton"
               />
             </div>
@@ -349,10 +383,10 @@ export default function ProductForm() {
               <label>
                 Color <span className="optional">(optional)</span>
               </label>
-              <input 
-                name="color" 
-                value={form.color} 
-                onChange={onChange} 
+              <input
+                name="color"
+                value={form.color}
+                onChange={onChange}
                 placeholder="e.g., Navy Blue, White"
               />
             </div>
@@ -418,10 +452,10 @@ export default function ProductForm() {
             <label>
               Weight <span className="optional">(optional)</span>
             </label>
-            <input 
-              name="weight" 
-              value={form.weight} 
-              onChange={onChange} 
+            <input
+              name="weight"
+              value={form.weight}
+              onChange={onChange}
               placeholder="e.g., 250g"
             />
           </div>
@@ -430,13 +464,48 @@ export default function ProductForm() {
             <label>
               Description <span className="optional">(optional)</span>
             </label>
-            <textarea 
-              name="description" 
-              value={form.description} 
-              onChange={onChange} 
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={onChange}
               rows={4}
               placeholder="Describe the product features, materials, fit, and other details..."
             />
+          </div>
+
+          {/* NEW: Availability & Stock section */}
+          <div className="two-col">
+            <div className="form-group">
+              <label>
+                <input
+                  type="checkbox"
+                  name="available"
+                  checked={!!form.available}
+                  onChange={onChange}
+                />{' '}
+                Available for sale
+              </label>
+            </div>
+
+            <div className="form-group">
+              <label>
+                Stock Quantity <span className="optional">(required: 0 or more)</span>
+              </label>
+              <input
+                name="stock"
+                type="number"
+                min="0"
+                step="1"
+                value={form.stock}
+                onChange={(e) => {
+                  // ensure we store an integer or empty string
+                  const v = e.target.value;
+                  setForm(prev => ({ ...prev, stock: v === '' ? '' : Math.max(0, Math.trunc(Number(v))) }));
+                }}
+                placeholder="e.g., 10"
+              />
+              {errors.stock && <div className="error-text">{errors.stock}</div>}
+            </div>
           </div>
 
           <div className="form-group">
@@ -458,7 +527,11 @@ export default function ProductForm() {
                 multiple
                 onChange={onFileChange}
               />
-              
+
+              {errors.imageCompression && (
+                <div className="error-text">{errors.imageCompression}</div>
+              )}
+
               {images.length > 0 && (
                 <div className="image-preview-grid">
                   {images.map((file, index) => (
@@ -481,8 +554,8 @@ export default function ProductForm() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="submit-btn"
             disabled={saving}
           >

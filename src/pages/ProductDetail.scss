@@ -503,3 +503,13 @@
 .pd-thumb { border: 1px solid #eee; padding: 2px; background: #fff; cursor: pointer; }
 .pd-thumb img { width: 68px; height: 68px; object-fit: cover; display: block; }
 .pd-thumb--active { border-color: #333; }
+.pd-badge--danger {
+  background-color: #ff4d4f; /* red */
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 6px;
+}

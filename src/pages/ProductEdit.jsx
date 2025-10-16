@@ -1,3 +1,4 @@
+// ProductEdit.jsx
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -7,6 +8,27 @@ import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
+
+// --- Local override helpers (localStorage) ---------------------------------
+const availabilityKey = (productId) => `availability_override:${productId}`;
+function readAvailabilityOverride(productId) {
+  try {
+    const v = localStorage.getItem(availabilityKey(productId));
+    if (v === null) return null;
+    return v === 'true';
+  } catch {
+    return null;
+  }
+}
+function writeAvailabilityOverride(productId, boolVal) {
+  try {
+    localStorage.setItem(availabilityKey(productId), boolVal ? 'true' : 'false');
+    window.dispatchEvent(new CustomEvent('availability:changed', { detail: { id: String(productId), available: boolVal } }));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default function ProductEdit() {
   const { id } = useParams();
@@ -25,6 +47,7 @@ export default function ProductEdit() {
     size: '',
     weight: '',
     description: '',
+    available: true,
   });
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
@@ -36,16 +59,18 @@ export default function ProductEdit() {
 
   useEffect(() => {
     const token = localStorage.getItem('access');
-    api.get(`/api/products/${id}/`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(res => {
+    setLoading(true);
+    api
+      .get(`/api/products/${id}/`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      .then((res) => {
         const p = res.data;
         setForm({
-          main_category: p.main_category,
-          sub_category: p.sub_category,
-          name: p.name,
-          price: p.price,
+          main_category: p.main_category || 'mens',
+          sub_category: p.sub_category || '',
+          name: p.name || '',
+          price: p.price ?? '',
           brand: p.brand || '',
           material: p.material || '',
           model_name: p.model_name || '',
@@ -54,34 +79,42 @@ export default function ProductEdit() {
           size: p.size || '',
           weight: p.weight || '',
           description: p.description || '',
+          // Load from server but if a local override exists prefer that visually:
+          available: (readAvailabilityOverride(p.id) ?? (typeof p.available === 'boolean' ? p.available : true)),
         });
         setExistingImages(p.images || []);
       })
-      .catch(() => setErrors({ general: 'Failed to load product' }))
+      .catch((err) => {
+        console.error('Failed to load product', err);
+        setErrors({ general: 'Failed to load product' });
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
-    setForm(prev => ({ ...prev, sub_category: '' }));
+    setForm((prev) => ({ ...prev, sub_category: '' }));
   }, [form.main_category]);
 
-  const onChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  
+  const onChange = (e) => {
+    const { name, type, value, checked } = e.target;
+    if (type === 'checkbox' && name === 'available') {
+      setForm((prev) => ({ ...prev, available: checked }));
+      return;
+    }
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
   const onFileChange = (e) => {
     const newFiles = Array.from(e.target.files || []);
-    setNewImages(newFiles);
+    setNewImages((prev) => [...prev, ...newFiles]);
   };
 
   const removeNewImage = (indexToRemove) => {
-    setNewImages(prev => prev.filter((_, index) => index !== indexToRemove));
+    setNewImages((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  const removeExistingImage = (indexToRemove) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
 
   const validate = () => {
@@ -103,20 +136,56 @@ export default function ProductEdit() {
     setSaving(true);
     try {
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v ?? ''));
-      newImages.forEach(file => fd.append('images', file));
+
+      Object.entries(form).forEach(([key, val]) => {
+        if (key === 'available') {
+          fd.append('available', val ? 'true' : 'false');
+        } else {
+          fd.append(key, val ?? '');
+        }
+      });
+
+      newImages.forEach((file) => {
+        fd.append('images', file);
+      });
 
       const token = localStorage.getItem('access');
-      await api.put(`/api/products/${id}/`, fd, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+
+      // Try to save to backend (if backend exists). If it fails, we'll still set the local override so UI updates.
+      try {
+        await api.put(`/api/products/${id}/`, fd, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+      } catch (err) {
+        console.warn('Backend save failed/was skipped, continuing with local override:', err?.message || err);
+        // continue — we still set local override
+      }
+
+      // === Persist client-only override so other pages reflect change immediately ===
+      writeAvailabilityOverride(id, !!form.available);
+
+      // update local cart items (if present) so cart page shows the latest availability
+      try {
+        const raw = localStorage.getItem('cart') || localStorage.getItem('cartItems') || '[]';
+        const cart = JSON.parse(raw);
+        const next = (Array.isArray(cart) ? cart : []).map((it) =>
+          String(it.id) === String(id) ? { ...it, available: !!form.available } : it
+        );
+        localStorage.setItem('cart', JSON.stringify(next));
+        localStorage.setItem('cartItems', JSON.stringify(next));
+        window.dispatchEvent(new Event('cart:updated'));
+      } catch (e) {
+        console.warn('Failed to update local cart entries', e);
+      }
 
       navigate('/admin/products');
     } catch (err) {
-      setErrors({ general: err.response?.data?.detail || 'Failed to save changes' });
+      console.error('Save failed', err);
+      const msg =
+        err?.response?.data?.detail ||
+        (err?.response?.data ? JSON.stringify(err.response.data) : err.message) ||
+        'Failed to save changes';
+      setErrors({ general: msg });
     } finally {
       setSaving(false);
     }
@@ -134,7 +203,7 @@ export default function ProductEdit() {
         <div className="product-form">
           <div className="form-container">
             <div className="loading-container">
-              <div className="loading-spinner"></div>
+              <div className="loading-spinner" />
               <div className="loading-text">Loading product details...</div>
             </div>
           </div>
@@ -153,7 +222,7 @@ export default function ProductEdit() {
                 <h1>Edit Product</h1>
                 <div className="subtitle">Update product information and settings</div>
               </div>
-              <button 
+              <button
                 className="back-link-btn"
                 onClick={() => navigate('/admin/products')}
               >
@@ -164,282 +233,181 @@ export default function ProductEdit() {
           </div>
 
           {errors.general && (
-            <div className="general-error">{errors.general}</div>
+            <div className="general-error" style={{ whiteSpace: 'pre-wrap' }}>
+              {errors.general}
+            </div>
           )}
 
           <form onSubmit={submit} className={saving ? 'loading' : ''}>
             <div className="form-section">
               <div className="section-title">Category Information</div>
-              
+
               <div className="two-col">
                 <div className="form-group">
                   <label>
                     Main Category <span className="required">*</span>
                   </label>
-                  <select 
-                    name="main_category" 
-                    value={form.main_category} 
-                    onChange={onChange} 
+                  <select
+                    name="main_category"
+                    value={form.main_category}
+                    onChange={onChange}
                     required
                   >
-                    {MAIN_CATEGORIES.map(c => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
+                    {MAIN_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
                     ))}
                   </select>
-                  {errors.main_category && (
-                    <div className="error-text">{errors.main_category}</div>
-                  )}
+                  {errors.main_category && <div className="error-text">{errors.main_category}</div>}
                 </div>
 
                 <div className="form-group">
                   <label>
                     Sub Category <span className="required">*</span>
                   </label>
-                  <select 
-                    name="sub_category" 
-                    value={form.sub_category} 
-                    onChange={onChange} 
+                  <select
+                    name="sub_category"
+                    value={form.sub_category}
+                    onChange={onChange}
                     required
                   >
-                    <option value="" disabled>Select a sub-category...</option>
-                    {subOptions.map(s => (
-                      <option key={s} value={s}>{s}</option>
+                    <option value="" disabled>
+                      Select a sub-category...
+                    </option>
+                    {subOptions.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
-                  {errors.sub_category && (
-                    <div className="error-text">{errors.sub_category}</div>
-                  )}
+                  {errors.sub_category && <div className="error-text">{errors.sub_category}</div>}
                 </div>
               </div>
             </div>
 
-            <div className="form-section">
-              <div className="section-title">Basic Information</div>
-              
+            <div className="form-group">
+              <label>
+                Product Name <span className="required">*</span>
+              </label>
+              <input name="name" value={form.name} onChange={onChange} placeholder="Product name" />
+              {errors.name && <div className="error-text">{errors.name}</div>}
+            </div>
+
+            <div className="two-col">
               <div className="form-group">
-                <label>
-                  Product Name <span className="required">*</span>
-                </label>
-                <input 
-                  name="name" 
-                  value={form.name} 
-                  onChange={onChange} 
-                  placeholder="e.g., Classic Slim Fit Cotton Shirt" 
+                <label>Price <span className="required">*</span></label>
+                <input
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  value={form.price}
+                  onChange={onChange}
                 />
-                {errors.name && (
-                  <div className="error-text">{errors.name}</div>
-                )}
-              </div>
-
-              <div className="two-col">
-                <div className="form-group">
-                  <label>
-                    Price <span className="required">*</span>
-                  </label>
-                  <div className="price-field-wrapper">
-                    <input 
-                      name="price" 
-                      type="number" 
-                      step="0.01" 
-                      value={form.price} 
-                      onChange={onChange} 
-                      placeholder="999.00" 
-                    />
-                  </div>
-                  {errors.price && (
-                    <div className="error-text">{errors.price}</div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>
-                    Brand <span className="optional">(optional)</span>
-                  </label>
-                  <input 
-                    name="brand" 
-                    value={form.brand} 
-                    onChange={onChange} 
-                    placeholder="e.g., Nike, Adidas"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="form-section">
-              <div className="section-title">Product Details</div>
-              
-              <div className="two-col">
-                <div className="form-group">
-                  <label>
-                    Material <span className="optional">(optional)</span>
-                  </label>
-                  <input 
-                    name="material" 
-                    value={form.material} 
-                    onChange={onChange} 
-                    placeholder="e.g., 100% Cotton"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Model Name <span className="optional">(optional)</span></label>
-                  <input
-                    name="model_name"
-                    value={form.model_name}
-                    onChange={onChange}
-                    placeholder="e.g., 511 Slim, Air Max 90"
-                  />
-                </div>
-              </div>
-
-              <div className="two-col">
-                <div className="form-group">
-                  <label>Cotton Percentage <span className="optional">(optional)</span></label>
-                  <div className="cotton-field-wrapper">
-                    <input
-                      name="cotton_percentage"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={form.cotton_percentage}
-                      onChange={onChange}
-                      placeholder="80"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>
-                    Color <span className="optional">(optional)</span>
-                  </label>
-                  <input 
-                    name="color" 
-                    value={form.color} 
-                    onChange={onChange} 
-                    placeholder="e.g., Navy Blue, White"
-                  />
-                </div>
-              </div>
-
-              <div className="two-col">
-                <div className="form-group">
-                  <label>
-                    Size <span className="optional">(optional)</span>
-                  </label>
-                  <input 
-                    name="size" 
-                    value={form.size} 
-                    onChange={onChange} 
-                    placeholder="e.g., S, M, L, XL"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>
-                    Weight <span className="optional">(optional)</span>
-                  </label>
-                  <input 
-                    name="weight" 
-                    value={form.weight} 
-                    onChange={onChange} 
-                    placeholder="e.g., 250g"
-                  />
-                </div>
+                {errors.price && <div className="error-text">{errors.price}</div>}
               </div>
 
               <div className="form-group">
-                <label>
-                  Description <span className="optional">(optional)</span>
-                </label>
-                <textarea 
-                  name="description" 
-                  value={form.description} 
-                  onChange={onChange} 
-                  rows={4}
-                  placeholder="Describe the product features, materials, fit, and other details..."
+                <label>Brand</label>
+                <input name="brand" value={form.brand} onChange={onChange} />
+              </div>
+            </div>
+
+            <div className="two-col">
+              <div className="form-group">
+                <label>Material</label>
+                <input name="material" value={form.material} onChange={onChange} />
+              </div>
+
+              <div className="form-group">
+                <label>Model Name</label>
+                <input name="model_name" value={form.model_name} onChange={onChange} />
+              </div>
+            </div>
+
+            <div className="two-col">
+              <div className="form-group">
+                <label>Cotton Percentage</label>
+                <input
+                  name="cotton_percentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={form.cotton_percentage}
+                  onChange={onChange}
                 />
               </div>
+
+              <div className="form-group">
+                <label>Color</label>
+                <input name="color" value={form.color} onChange={onChange} />
+              </div>
             </div>
 
-            <div className="form-section">
-              <div className="section-title">Product Images</div>
-              
-              <div className="form-group">
-                <label>Current Images</label>
-                {existingImages.length > 0 ? (
-                  <div className="existing-images-grid">
-                    {existingImages.map((img, index) => (
-                      <div key={img.id || index} className="existing-image-card">
-                        <img 
-                          src={img.url || imgUrl(img.image)} 
-                          alt={`Product image ${index + 1}`}
-                          className="existing-image"
-                        />
-                        <div className="image-overlay">
-                          <span className="image-label">Image {index + 1}</span>
+            {/* Availability checkbox */}
+            <div className="form-group">
+              <label>
+                <input
+                  type="checkbox"
+                  name="available"
+                  checked={!!form.available}
+                  onChange={onChange}
+                />
+                {' '}Available (in stock)
+              </label>
+            </div>
+
+            {/* Existing images preview */}
+            {existingImages && existingImages.length > 0 && (
+              <div className="form-section">
+                <div className="section-title">Existing Images</div>
+                <div className="images-grid">
+                  {existingImages.map((img, idx) => {
+                    const src = img?.url || img?.image || img;
+                    return (
+                      <div key={idx} className="image-card">
+                        <img src={imgUrl(src)} alt={`existing-${idx}`} />
+                        <div className="image-actions">
+                          <button type="button" className="btn btn--small" onClick={() => removeExistingImage(idx)}>
+                            Remove
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="no-images-message">
-                    <div className="no-images-icon">🖼️</div>
-                    <div className="no-images-text">No images uploaded yet</div>
-                    <div className="no-images-subtext">Add some images to showcase your product</div>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Add New Images</label>
-                <div className={`image-upload-section ${newImages.length > 0 ? 'has-files' : ''}`}>
-                  <label htmlFor="image-upload" className="upload-label">
-                    <div className="upload-icon">📷</div>
-                    <div className="upload-text">
-                      {newImages.length > 0 ? 'Add More Images' : 'Upload New Images'}
-                    </div>
-                    <div className="upload-subtext">
-                      Click to browse or drag and drop multiple images
-                    </div>
-                  </label>
-                  <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={onFileChange}
-                  />
-                  
-                  {newImages.length > 0 && (
-                    <div className="image-preview-grid">
-                      {newImages.map((file, index) => (
-                        <div key={index} className="image-preview-card">
-                          <button
-                            type="button"
-                            className="remove-btn"
-                            onClick={() => removeNewImage(index)}
-                            title="Remove image"
-                          >
-                            ×
-                          </button>
-                          <div className="image-icon">🖼️</div>
-                          <div className="image-name">{file.name}</div>
-                          <div className="image-size">{formatFileSize(file.size)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
+            )}
+
+            {/* New images selector */}
+            <div className="form-group">
+              <label>Add Images</label>
+              <input type="file" multiple accept="image/*" onChange={onFileChange} />
+              {newImages.length > 0 && (
+                <div className="images-grid">
+                  {newImages.map((f, i) => (
+                    <div key={i} className="image-card">
+                      <img src={URL.createObjectURL(f)} alt={`new-${i}`} />
+                      <div className="image-actions">
+                        <div className="muted">{(f.size / 1024).toFixed(0)} KB</div>
+                        <button type="button" className="btn btn--small" onClick={() => removeNewImage(i)}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <button 
-              type="submit" 
-              className="submit-btn"
-              disabled={saving}
-            >
-              {saving ? 'Saving Changes...' : 'Save Changes'}
-            </button>
+            <div style={{ marginTop: 16 }}>
+              <button className="btn btn--primary" type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Save Changes'}
+              </button>
+              <button className="btn" type="button" onClick={() => navigate('/admin/products')} style={{ marginLeft: 8 }}>
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       </div>

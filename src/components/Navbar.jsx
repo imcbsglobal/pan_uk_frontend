@@ -1,6 +1,6 @@
 // src/components/Navbar.jsx
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Search,
   ShoppingCart,
@@ -17,7 +17,11 @@ import "./Navbar.scss";
 import axios from "axios";
 
 function slugify(txt = "") {
-  return String(txt).toLowerCase().replace(/\s+/g, "-");
+  return String(txt || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
 }
 
 const apiBase = import.meta.env.VITE_API_URL || "https://panukonline.com";
@@ -36,7 +40,6 @@ function calcCartCount(items) {
 }
 
 export default function Navbar() {
-  // --- Hooks must all live inside the component body ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileDropdowns, setMobileDropdowns] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -46,15 +49,36 @@ export default function Navbar() {
   const [menuError, setMenuError] = useState(null);
   const [cartCount, setCartCount] = useState(0);
 
-  // Search state
   const [query, setQuery] = useState("");
 
   const menuRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine active category slug: prefer location.state.raw (if available),
+  // otherwise read from pathname /category/:slug
+  const currentCategory = useMemo(() => {
+    try {
+      const rawFromState = location?.state?.raw;
+      if (rawFromState) return slugify(String(rawFromState));
+      const match = (location?.pathname || "").match(/^\/category\/([^\/?#]+)/i);
+      if (match && match[1]) {
+        try {
+          return slugify(decodeURIComponent(match[1]));
+        } catch {
+          return slugify(match[1]);
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, [location]);
 
   const goCategory = (name) => {
     navigate(`/category/${slugify(name)}`, { state: { raw: name } });
   };
+
   const handleSubItemClick = (mainLabel, subLabel, e) => {
     if (e) e.stopPropagation();
     const combined = `${mainLabel} ${subLabel}`;
@@ -63,7 +87,7 @@ export default function Navbar() {
     setMobileDropdowns({});
   };
 
-  // Fetch products (used to build dynamic menu)
+  // Fetch products for menu
   useEffect(() => {
     const token = localStorage.getItem("access");
     setLoadingMenu(true);
@@ -120,7 +144,11 @@ export default function Navbar() {
     return items;
   }, [products]);
 
-  // Monitor auth status (from localStorage)
+  // NOTE: show all categories in the menu but visually highlight the active one
+  // (avoids accidental hiding of categories like T-Shirt when Shirt is active).
+  // This approach uses exact slug equality to decide active state.
+
+  // Auth monitor
   useEffect(() => {
     const checkLoginStatus = () => {
       const token = localStorage.getItem("access");
@@ -151,7 +179,7 @@ export default function Navbar() {
     };
   }, []);
 
-  // Track cart count and listen for cart updates
+  // Cart tracking
   useEffect(() => {
     const recompute = () => setCartCount(calcCartCount(readCart()));
     recompute();
@@ -212,7 +240,7 @@ export default function Navbar() {
     };
   }, [isMobileMenuOpen]);
 
-  // Ensure mobile menu closes on resize
+  // Close mobile menu on resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 768 && isMobileMenuOpen) {
@@ -224,22 +252,18 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", handleResize);
   }, [isMobileMenuOpen]);
 
-  // --- Search handler (navigates to category page which will use the query param)
   const handleSearch = (e) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     const q = String(query || "").trim();
     if (!q) return;
-    // Using the same pattern as goCategory but we want the raw query available to CategoryPage
     navigate(`/category/${slugify(q)}`, { state: { raw: q } });
-    // optional: clear search input
     setQuery("");
-    // close mobile menu if open
     setIsMobileMenuOpen(false);
   };
 
   return (
     <nav className="navbar">
-      {/* ---- Top Section ---- */}
+      {/* Top Row */}
       <div className="top-row">
         <div className="nav-left">
           <div className="logo">
@@ -287,16 +311,14 @@ export default function Navbar() {
           <div className="cart" onClick={() => navigate("/cart")}>
             <div className="cart-icon">
               <ShoppingCart size={22} className="cart-svg" />
-              {cartCount > 0 && (
-                <span className="cart-badge">{cartCount > 99 ? "99+" : cartCount}</span>
-              )}
+              {cartCount > 0 && <span className="cart-badge">{cartCount > 99 ? "99+" : cartCount}</span>}
             </div>
             <span className="cart-label"></span>
           </div>
         </div>
       </div>
 
-      {/* ---- Menu Row ---- */}
+      {/* Menu Row */}
       <div className="menu-row" ref={menuRef}>
         <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
           {isMobileMenuOpen ? (
@@ -323,13 +345,17 @@ export default function Navbar() {
             dynamicMenuItems.map((item) => {
               const Icon = item.icon || Grid3X3;
               const isMobileDropdownOpen = mobileDropdowns[item.id];
+              const isActive = currentCategory && String(item.id) === String(currentCategory);
+
               return (
                 <li
                   key={item.id}
+                  className={`menu-item ${isActive ? "active" : ""}`}
                   data-tooltip={item.label}
                   onClick={() => {
                     if (window.innerWidth <= 768 && item.hasDropdown) handleMobileDropdown(item.id);
                   }}
+                  aria-current={isActive ? "true" : undefined}
                 >
                   <Icon size={16} />
                   <span

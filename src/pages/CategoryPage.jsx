@@ -1,15 +1,15 @@
+// src/pages/CategoryPage.jsx
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import HoverImageCarousel from "../components/HoverImageCarousel"; // ✅ NEW
+import HoverImageCarousel from "../components/HoverImageCarousel";
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
-// --- Cart persistence helpers (server sync) ---
 const hasLS = typeof window !== 'undefined' && !!window.localStorage;
 const CART_SERVER_MAP = 'cartServerMap';
 const getToken = () => (hasLS ? localStorage.getItem('access') : null);
@@ -18,8 +18,16 @@ const getIdMap = () => {
 };
 const setIdMap = (m) => { try { localStorage.setItem(CART_SERVER_MAP, JSON.stringify(m)); return true; } catch { return false; } };
 
+function slugify(txt = '') {
+  return String(txt || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+}
+
 function deslugify(slug = '') {
-  return slug.replace(/-/g, ' ');
+  return String(slug || '').replace(/-/g, ' ');
 }
 function imgUrl(path) {
   if (!path) return '';
@@ -33,7 +41,6 @@ function getImageUrl(img) {
   return img?.image ? imgUrl(img.image) : '';
 }
 
-// Safe JSON helpers
 function readJSON(key, fallback) {
   if (!hasLS) return fallback;
   try {
@@ -53,7 +60,6 @@ function writeJSON(key, value) {
   }
 }
 
-// key used to identify items in cart (keeps parity with ProductDetail)
 function cartKey(prod) {
   return `${prod?.id || 'noid'}|${prod?.color || ''}|${prod?.size || ''}`;
 }
@@ -63,41 +69,54 @@ export default function CategoryPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Use raw name from state if available; fallback to slug
+  // prefer raw label, otherwise deslugify the route param
   const categoryName = (location.state && location.state.raw) || deslugify(slug || '');
+
+  // targetSlug is normalized slug used for exact comparisons
+  const targetSlug = useMemo(() => {
+    if (location?.state?.raw) return slugify(String(location.state.raw));
+    if (slug) {
+      try {
+        return slugify(decodeURIComponent(slug));
+      } catch {
+        return slugify(slug);
+      }
+    }
+    return null;
+  }, [location, slug]);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Track products in cart (by key)
   const [cartKeys, setCartKeys] = useState(() => {
     const cart = readJSON('cart', []);
     return new Set(cart.map((c) => c.key));
   });
 
-  // Simple toast
   const [toast, setToast] = useState('');
   const showToast = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2000);
   }, []);
 
-  // Fetch category items
+  // Fetch all products (we'll filter client-side by exact slugs)
   useEffect(() => {
     setLoading(true);
     const token = hasLS ? localStorage.getItem('access') : null;
     api
       .get('/api/products/', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        params: { search: categoryName },
       })
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : res.data?.results || [];
         setItems(list);
       })
-      .catch(() => setItems([]))
+      .catch((err) => {
+        console.error("Failed to load products for category", err);
+        setItems([]);
+      })
       .finally(() => setLoading(false));
-  }, [categoryName]);
+  }, [slug, location.key]);
 
   const recomputeCartKeys = useCallback(() => {
     const cart = readJSON('cart', []);
@@ -117,30 +136,23 @@ export default function CategoryPage() {
     };
   }, [recomputeCartKeys]);
 
-  // Category-aware filtering (same as your original)
+  // Filter using exact slug equality (main OR sub OR main-sub combined)
   const filtered = useMemo(() => {
-    const c = categoryName.trim().toLowerCase();
+    if (!targetSlug) return items;
 
     return items.filter((p) => {
-      const main = (p.main_category || '').toLowerCase();
-      const sub = (p.sub_category || '').toLowerCase();
-      const [maybeMain, maybeSub] = c.split(' ').length > 1
-        ? [c.substring(0, c.lastIndexOf(' ')), c.substring(c.lastIndexOf(' ') + 1)]
-        : [c, ''];
+      const main = slugify(p?.main_category || '');
+      const sub = slugify(p?.sub_category || '');
 
-      if (maybeMain && maybeSub) {
-        return main.includes(maybeMain) && sub.includes(maybeSub);
-      }
+      // exact matches:
+      if (main === targetSlug) return true;
+      if (sub === targetSlug) return true;
+      if (main && sub && `${main}-${sub}` === targetSlug) return true;
 
-      if (['men', 'mens', "men's wear", 'kids', 'boys', 'kidsboys', 'unisex', 'imported', 'wedding', 'weddinghub'].some((k) => c.includes(k))) {
-        return main.includes(maybeMain);
-      }
-
-      return sub.includes(c);
+      return false;
     });
-  }, [items, categoryName]);
+  }, [items, targetSlug]);
 
-  // ADD / REMOVE CART
   const addToCart = (p, imageUrl) => {
     const key = cartKey(p);
     const baseItem = {
@@ -267,12 +279,24 @@ export default function CategoryPage() {
     }
   };
 
+  const prettyTitle = useMemo(() => {
+    if (location?.state?.raw) return location.state.raw;
+    if (slug) {
+      try {
+        return decodeURIComponent(slug).replace(/-/g, ' ');
+      } catch {
+        return slug.replace(/-/g, ' ');
+      }
+    }
+    return "Category";
+  }, [location, slug]);
+
   return (
     <>
       <Navbar />
       <div className="home-container">
         <div className="home-header">
-          <h1 className="home-title">{categoryName}</h1>
+          <h1 className="home-title">{prettyTitle}</h1>
           {toast && <div className="home-toast">{toast}</div>}
         </div>
 
