@@ -67,7 +67,7 @@ function readAvailabilityOverrideByCandidates(productId, candidates = []) {
 }
 
 // --- image / formatting ---------------------------------------------------
-const apiBase = import.meta.env?.VITE_API_URL || 'https://panukonline.com';
+const apiBase = import.meta.env?.VITE_API_URL || 'https://panukonline.com/';
 function normalizeImageUrl(url) {
   if (!url || typeof url !== 'string') return '';
   if (url.startsWith('http')) return url;

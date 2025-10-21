@@ -7,7 +7,7 @@ import { CATEGORY_MAP, MAIN_CATEGORIES } from "../utils/categories";
 import "./ProductsList.scss";
 
 // ---- Axios base + interceptors --------------------------------------------
-const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
 const api = axios.create({ baseURL: apiBase });
 
 api.interceptors.request.use((config) => {

@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import HoverImageCarousel from "../components/HoverImageCarousel";
 import './Home.scss';
 
-const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
 const api = axios.create({ baseURL: apiBase });
 
 const hasLS = typeof window !== 'undefined' && !!window.localStorage;
@@ -32,7 +32,7 @@ function deslugify(slug = '') {
 function imgUrl(path) {
   if (!path) return '';
   if (typeof path === 'string' && path.startsWith('http')) return path;
-  const base = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+  const base = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
   return `${base}${path}`;
 }
 function getImageUrl(img) {

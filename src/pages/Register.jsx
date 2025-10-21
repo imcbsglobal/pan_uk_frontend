@@ -6,7 +6,7 @@ import panukLogo from '../assets/panuk-logo.png.png';
 import './Login.scss'; // Reusing the same styles
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://panukonline.com',
+  baseURL: import.meta.env.VITE_API_URL || 'https://panukonline.com/',
 });
 
 function Register() {

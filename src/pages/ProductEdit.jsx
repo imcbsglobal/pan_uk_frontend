@@ -6,7 +6,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import './ProductForm.scss';
 import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 
-const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
 const api = axios.create({ baseURL: apiBase });
 
 // --- Local override helpers (localStorage) ---------------------------------
@@ -91,8 +91,15 @@ export default function ProductEdit() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Only clear sub_category when it's invalid for the newly selected main_category.
+  // This preserves the server-provided sub_category on initial load.
   useEffect(() => {
-    setForm((prev) => ({ ...prev, sub_category: '' }));
+    const options = CATEGORY_MAP[form.main_category] || [];
+    if (form.sub_category && !options.includes(form.sub_category)) {
+      setForm((prev) => ({ ...prev, sub_category: '' }));
+    }
+    // only run when main_category changes (we intentionally don't include sub_category in deps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.main_category]);
 
   const onChange = (e) => {
@@ -107,6 +114,8 @@ export default function ProductEdit() {
   const onFileChange = (e) => {
     const newFiles = Array.from(e.target.files || []);
     setNewImages((prev) => [...prev, ...newFiles]);
+    // clear input to allow re-selecting same file if needed
+    if (e.target) e.target.value = '';
   };
 
   const removeNewImage = (indexToRemove) => {

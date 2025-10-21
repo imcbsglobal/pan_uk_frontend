@@ -24,7 +24,7 @@ function slugify(txt = "") {
     .replace(/-+/g, "-");
 }
 
-const apiBase = import.meta.env.VITE_API_URL || "https://panukonline.com";
+const apiBase = import.meta.env.VITE_API_URL || "https://panukonline.com/";
 const api = axios.create({ baseURL: apiBase });
 
 function readCart() {

@@ -8,7 +8,7 @@ import { FaWhatsapp, FaShoppingCart, FaChevronLeft, FaChevronRight } from 'react
 import './ProductDetail.scss';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://panukonline.com',
+  baseURL: import.meta.env.VITE_API_URL || 'https://panukonline.com/',
 });
 
 // --- Helpers that robustly read availability_override keys -----------------
