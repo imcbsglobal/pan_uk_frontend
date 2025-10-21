@@ -149,11 +149,12 @@ export default function ProductsList() {
     }
   };
 
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
-    );
-  };
+ const toggleSelect = (id) => {
+  setSelectedIds((prev) =>
+    prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id]
+  );
+};
+
 
   const clearFilters = () => {
     setMainCat('all');
@@ -165,22 +166,35 @@ export default function ProductsList() {
       <div className="products-page">
         <div className="products-page__header">
           <h2>Products</h2>
-          <div>
-            <button
-              className="btn btn--primary"
-              onClick={() => navigate('/admin/products/new')}
-            >
-              + Add New Product
-            </button>
-            <button
-              className="btn btn--danger"
-              onClick={handleBulkDelete}
-              disabled={selectedIds.length === 0}
-              style={{ marginLeft: '10px' }}
-            >
-              Delete Selected
-            </button>
-          </div>
+          {/* header buttons */}
+<div>
+  <button
+    type="button"
+    className="btn btn--primary"
+    onClick={(e) => {
+      e.preventDefault();
+      try {
+        navigate('/admin/products/new');
+      } catch (ex) {
+        // fallback if navigate fails for any reason
+        window.location.href = '/admin/products/new';
+      }
+    }}
+  >
+    + Add New Product
+  </button>
+
+  <button
+    type="button"
+    className="btn btn--danger"
+    onClick={handleBulkDelete}
+    disabled={selectedIds.length === 0}
+    style={{ marginLeft: '10px' }}
+  >
+    Delete Selected
+  </button>
+</div>
+
         </div>
 
         {/* Filters */}
@@ -214,7 +228,7 @@ export default function ProductsList() {
           </div>
 
           <div className="filter-actions">
-            <button className="btn" onClick={clearFilters}>
+            <button type="button" className="btn" onClick={clearFilters}>
               Clear
             </button>
           </div>
@@ -225,7 +239,7 @@ export default function ProductsList() {
         ) : filteredItems.length === 0 ? (
           <div className="empty">
             <p>No products match your filter.</p>
-            <button className="btn" onClick={clearFilters}>
+            <button type="button" className="btn" onClick={clearFilters}>
               Reset Filters
             </button>
           </div>
@@ -282,6 +296,7 @@ export default function ProductsList() {
                       onChange={() => toggleSelect(p.id)}
                     />
                     <button
+                      type="button"
                       className="btn btn--ghost"
                       onClick={() => navigate(`/admin/products/${p.id}/edit`)}
                       disabled={isDeleting}
@@ -289,6 +304,7 @@ export default function ProductsList() {
                       Edit
                     </button>
                     <button
+                      type="button"
                       className="btn btn--danger"
                       onClick={() => handleDelete(p.id)}
                       disabled={isDeleting}

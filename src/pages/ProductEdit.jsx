@@ -6,7 +6,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import './ProductForm.scss';
 import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 
-const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
 const api = axios.create({ baseURL: apiBase });
 
 // --- Local override helpers (localStorage) ---------------------------------
@@ -49,10 +49,12 @@ export default function ProductEdit() {
     description: '',
     available: true,
   });
+
   const [existingImages, setExistingImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
+  const [removedExistingIds, setRemovedExistingIds] = useState([]); // <-- track removed existing image IDs
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // ensure this exists and is in scope
   const [saving, setSaving] = useState(false);
 
   const subOptions = useMemo(() => CATEGORY_MAP[form.main_category] || [], [form.main_category]);
@@ -82,7 +84,10 @@ export default function ProductEdit() {
           // Load from server but if a local override exists prefer that visually:
           available: (readAvailabilityOverride(p.id) ?? (typeof p.available === 'boolean' ? p.available : true)),
         });
-        setExistingImages(p.images || []);
+        // p.images might be array of strings or objects
+        setExistingImages(Array.isArray(p.images) ? p.images : []);
+        // reset removedExistingIds when loading the record
+        setRemovedExistingIds([]);
       })
       .catch((err) => {
         console.error('Failed to load product', err);
@@ -122,8 +127,16 @@ export default function ProductEdit() {
     setNewImages((prev) => prev.filter((_, i) => i !== indexToRemove));
   };
 
+  // When removing an existing image, record its id (if present) so the backend can delete it.
   const removeExistingImage = (indexToRemove) => {
-    setExistingImages((prev) => prev.filter((_, i) => i !== indexToRemove));
+    setExistingImages((prev) => {
+      const img = prev[indexToRemove];
+      if (img && (img.id || img.pk)) {
+        const idVal = img.id ?? img.pk;
+        setRemovedExistingIds((r) => (r.includes(idVal) ? r : [...r, idVal]));
+      }
+      return prev.filter((_, i) => i !== indexToRemove);
+    });
   };
 
   const validate = () => {
@@ -136,8 +149,8 @@ export default function ProductEdit() {
     return e;
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const submit = async (ev) => {
+    ev.preventDefault();
     const eobj = validate();
     setErrors(eobj);
     if (Object.keys(eobj).length) return;
@@ -154,8 +167,14 @@ export default function ProductEdit() {
         }
       });
 
+      // append new files
       newImages.forEach((file) => {
         fd.append('images', file);
+      });
+
+      // append remove_image_ids so backend can delete those images
+      removedExistingIds.forEach((rid) => {
+        fd.append('remove_image_ids', String(rid));
       });
 
       const token = localStorage.getItem('access');
@@ -164,6 +183,7 @@ export default function ProductEdit() {
       try {
         await api.put(`/api/products/${id}/`, fd, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
+          // DO NOT set Content-Type - axios/browser will set the multipart boundary
         });
       } catch (err) {
         console.warn('Backend save failed/was skipped, continuing with local override:', err?.message || err);
@@ -187,6 +207,9 @@ export default function ProductEdit() {
         console.warn('Failed to update local cart entries', e);
       }
 
+      // Let other pages know products changed (optional but convenient)
+      window.dispatchEvent(new Event('products:changed'));
+
       navigate('/admin/products');
     } catch (err) {
       console.error('Save failed', err);
@@ -204,6 +227,18 @@ export default function ProductEdit() {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     return `${apiBase}${path}`;
+  };
+
+  // helper to resolve an image item (string or object)
+  const resolveExistingSrc = (img) => {
+    if (!img) return '';
+    if (typeof img === 'string') return img.startsWith('http') ? img : imgUrl(img);
+    if (img.url) return img.url.startsWith('http') ? img.url : imgUrl(img.url);
+    if (img.image) {
+      if (typeof img.image === 'string') return img.image.startsWith('http') ? img.image : imgUrl(img.image);
+      if (img.image?.url) return img.image.url.startsWith('http') ? img.image.url : imgUrl(img.image.url);
+    }
+    return '';
   };
 
   if (loading) {
@@ -372,10 +407,10 @@ export default function ProductEdit() {
                 <div className="section-title">Existing Images</div>
                 <div className="images-grid">
                   {existingImages.map((img, idx) => {
-                    const src = img?.url || img?.image || img;
+                    const src = resolveExistingSrc(img);
                     return (
                       <div key={idx} className="image-card">
-                        <img src={imgUrl(src)} alt={`existing-${idx}`} />
+                        <img src={src} alt={`existing-${idx}`} />
                         <div className="image-actions">
                           <button type="button" className="btn btn--small" onClick={() => removeExistingImage(idx)}>
                             Remove
