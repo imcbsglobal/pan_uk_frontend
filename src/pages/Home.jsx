@@ -8,7 +8,7 @@ import bannerVideo from "../assets/banner.mp4";
 import HoverImageCarousel from "../components/HoverImageCarousel"; // ✅ NEW
 import './Home.scss';
 
-const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
 const api = axios.create({ baseURL: apiBase });
 
 /* --------------------------
