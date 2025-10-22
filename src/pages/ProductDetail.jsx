@@ -4,6 +4,9 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import SEO from '../components/SEO/SEO';
+import { getProductSchema, getBreadcrumbSchema } from '../utils/seo/structuredData';
+import { META_DESCRIPTIONS, ALT_TEXT_TEMPLATES } from '../utils/seo/keywords';
 import { FaWhatsapp, FaShoppingCart, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import './ProductDetail.scss';
 
@@ -349,14 +352,47 @@ ${additionalDetails ? `🔎 Other Details:\n${additionalDetails}` : ''}
 
   return (
     <>
+      {/* SEO Meta Tags and Structured Data for Product */}
+      <SEO
+        title={`${product.name} - Pan UK Kasaragod | Premium Fashion Store`}
+        description={META_DESCRIPTIONS.product(product.name)}
+        keywords={`${product.name}, ${product.brand || 'Pan UK'}, ${product.main_category || 'fashion'} Kasaragod, clothing Anebagilu, ${product.sub_category || 'apparel'} Dwarka Road, fashion store Kerala`}
+        canonical={`https://panukonline.com/product/${product.id}`}
+        ogTitle={`${product.name} - Available at Pan UK Kasaragod`}
+        ogDescription={product.description || `${product.name} available at Pan UK, your premium fashion destination in Kasaragod, Kerala.`}
+        ogImage={mainImage || 'https://panukonline.com/panuk-logo.png'}
+        ogType="product"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            getProductSchema(product),
+            getBreadcrumbSchema([
+              { name: 'Home', url: 'https://panukonline.com/' },
+              { name: product.main_category || 'Products', url: `https://panukonline.com/category/${(product.main_category || 'all').toLowerCase().replace(/\s+/g, '-')}` },
+              { name: product.name, url: `https://panukonline.com/product/${product.id}` }
+            ])
+          ]
+        }}
+      />
+
       <Navbar />
       <main className="pd-wrap">
         <section className="pd-grid">
           <aside className="pd-media">
             <div className="pd-mainwrap">
-              {images.length > 1 && (<button className="pd-navbtn pd-navbtn--left" onClick={showPrev}><FaChevronLeft/></button>)}
-              {mainImage ? (<figure className="pd-imgframe"><img src={mainImage} alt={product.name} className="pd-mainimg"/></figure>) : (<div className="pd-placeholder">No Image</div>)}
-              {images.length > 1 && (<button className="pd-navbtn pd-navbtn--right" onClick={showNext}><FaChevronRight/></button>)}
+              {images.length > 1 && (<button className="pd-navbtn pd-navbtn--left" onClick={showPrev} aria-label="Previous image"><FaChevronLeft/></button>)}
+              {mainImage ? (
+                <figure className="pd-imgframe">
+                  <img 
+                    src={mainImage} 
+                    alt={ALT_TEXT_TEMPLATES.productImage(product.name, activeIdx)} 
+                    className="pd-mainimg"
+                  />
+                </figure>
+              ) : (
+                <div className="pd-placeholder">No Image</div>
+              )}
+              {images.length > 1 && (<button className="pd-navbtn pd-navbtn--right" onClick={showNext} aria-label="Next image"><FaChevronRight/></button>)}
             </div>
 
             {images.length > 1 && (

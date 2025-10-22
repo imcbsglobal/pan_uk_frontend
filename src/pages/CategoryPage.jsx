@@ -5,6 +5,9 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import HoverImageCarousel from "../components/HoverImageCarousel";
+import SEO from '../components/SEO/SEO';
+import { getCollectionSchema, getBreadcrumbSchema } from '../utils/seo/structuredData';
+import { META_DESCRIPTIONS, CATEGORY_KEYWORDS, ALT_TEXT_TEMPLATES } from '../utils/seo/keywords';
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
@@ -291,8 +294,34 @@ export default function CategoryPage() {
     return "Category";
   }, [location, slug]);
 
+  // SEO data
+  const categoryKeywords = CATEGORY_KEYWORDS[categoryName] || `${categoryName} Kasaragod, ${categoryName} fashion Anebagilu, ${categoryName} clothing Kerala`;
+  const prettyCategory = categoryName || 'Products';
+
   return (
     <>
+      {/* SEO Meta Tags and Structured Data for Category */}
+      <SEO
+        title={`${prettyCategory} - Pan UK Kasaragod | Premium ${prettyCategory} Collection`}
+        description={META_DESCRIPTIONS.category(prettyCategory)}
+        keywords={`${categoryKeywords}, Pan UK Kasaragod, fashion store Anebagilu, clothing Dwarka Road Kerala`}
+        canonical={`https://panukonline.com/category/${slug}`}
+        ogTitle={`Shop ${prettyCategory} at Pan UK Kasaragod`}
+        ogDescription={`Browse our premium ${prettyCategory} collection at Pan UK, Mall of Kasaragod, Anebagilu, Dwarka Road. Quality fashion for everyone.`}
+        ogImage="https://panukonline.com/panuk-logo.png"
+        ogType="website"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            getCollectionSchema(prettyCategory, filtered),
+            getBreadcrumbSchema([
+              { name: 'Home', url: 'https://panukonline.com/' },
+              { name: prettyCategory, url: `https://panukonline.com/category/${slug}` }
+            ])
+          ]
+        }}
+      />
+
       <Navbar />
       <div className="home-container">
         <div className="home-header">
