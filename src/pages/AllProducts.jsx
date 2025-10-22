@@ -5,6 +5,9 @@ import axios from 'axios';
 
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import SEO from '../components/SEO/SEO';
+import { getBreadcrumbSchema } from '../utils/seo/structuredData';
+import { META_DESCRIPTIONS } from '../utils/seo/keywords';
 import './Home.scss'; // reuse your existing product card styles
 import './ProductDetail.scss';
 
@@ -36,12 +39,27 @@ export default function AllProducts() {
 
   return (
     <>
+      {/* SEO Meta Tags for All Products Page */}
+      <SEO
+        title="All Products - Pan UK Kasaragod | Premium Fashion Collection"
+        description={META_DESCRIPTIONS.products}
+        keywords="Pan UK products, fashion collection Kasaragod, all products Pan UK, clothing Anebagilu, fashion store Dwarka Road, premium clothing Kerala"
+        canonical="https://panukonline.com/all-products"
+        ogTitle="Browse All Products at Pan UK Kasaragod"
+        ogDescription="Explore our complete fashion collection at Pan UK, Mall of Kasaragod. Premium clothing, accessories, footwear & more."
+        ogImage="https://panukonline.com/panuk-logo.png"
+        structuredData={getBreadcrumbSchema([
+          { name: 'Home', url: 'https://panukonline.com/' },
+          { name: 'All Products', url: 'https://panukonline.com/all-products' }
+        ])}
+      />
+
       <Navbar />
       <section className="products-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">All Products</h2>
-            <p className="section-subtitle">Explore our full range of premium fashion collections</p>
+            <h1 className="section-title">All Fashion Products at Pan UK Kasaragod</h1>
+            <p className="section-subtitle">Explore our complete range of premium fashion collections at Mall of Kasaragod, Anebagilu</p>
           </div>
 
           <div className="products-grid">
@@ -70,7 +88,7 @@ export default function AllProducts() {
                       {src ? (
                         <img
                           src={src}
-                          alt={p.name}
+                          alt={`${p.name} - Pan UK Kasaragod premium fashion store`}
                           loading="lazy"
                           onError={(e) => {
                             e.currentTarget.src = 'https://via.placeholder.com/400x500?text=Image+Not+Found';

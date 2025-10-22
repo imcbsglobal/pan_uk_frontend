@@ -6,6 +6,9 @@ import Footer from '../components/Footer';
 import { useCart } from "../context/CartContext.jsx";
 import bannerVideo from "../assets/banner.mp4";
 import HoverImageCarousel from "../components/HoverImageCarousel"; // ✅ NEW
+import SEO from '../components/SEO/SEO';
+import { getLocalBusinessSchema, getWebsiteSearchSchema } from '../utils/seo/structuredData';
+import { CONTENT_SNIPPETS, META_DESCRIPTIONS, ALT_TEXT_TEMPLATES } from '../utils/seo/keywords';
 import './Home.scss';
 
 const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
@@ -133,6 +136,25 @@ export default function Home() {
 
   return (
     <>
+      {/* SEO Meta Tags and Structured Data */}
+      <SEO
+        title="Pan UK - Premium Fashion Store in Kasaragod | Trendy Clothing & Accessories"
+        description={META_DESCRIPTIONS.home}
+        keywords="Pan UK Kasaragod, fashion store Kasaragod, clothing shop Anebagilu, mens fashion Kasaragod, premium clothing Dwarka Road, Mall of Kasaragod, trendy clothes Kasaragod, footwear store Anebagilu, fashion boutique Kerala, branded clothes Kasaragod, imported fashion Kasaragod"
+        canonical="https://panukonline.com/"
+        ogTitle="Pan UK - Your Premium Fashion Destination in Kasaragod, Kerala"
+        ogDescription="Shop trendy clothing, accessories, footwear & imported fashion at Pan UK. Located at Mall of Kasaragod, Anebagilu, Dwarka Road. Quality fashion for everyone."
+        ogImage="https://panukonline.com/panuk-logo.png"
+        ogType="website"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            getLocalBusinessSchema(),
+            getWebsiteSearchSchema()
+          ]
+        }}
+      />
+
       <Navbar />
 
       {/* VIDEO BANNER */}
@@ -151,8 +173,8 @@ export default function Home() {
 
           <div className="video-overlay">
             <div className="banner-content">
-              <h1 className="banner-title">Welcome to Our Store</h1>
-              <p className="banner-subtitle">Shop trending collections &amp; amazing offers</p>
+              <h1 className="banner-title">{CONTENT_SNIPPETS.homepage.h1}</h1>
+              <p className="banner-subtitle">{CONTENT_SNIPPETS.homepage.subtitle}</p>
               <button className="cta-button" onClick={() => goCategory(categories[0] || 'all')}>
                 Shop Now
               </button>
@@ -167,15 +189,15 @@ export default function Home() {
           <div className="imported-media">
             <img
               src="https://i.ytimg.com/vi/X3-sGrj40P4/maxresdefault.jpg"
-              alt="Imported Items"
+              alt={ALT_TEXT_TEMPLATES.imported}
               loading="lazy"
             />
           </div>
 
           <div className="imported-text">
-            <h2 className="imported-title">Exclusive Imported Collection</h2>
+            <h2 className="imported-title">Exclusive Imported Fashion Collection</h2>
             <p className="imported-subtitle">
-              Premium handpicked imports — limited stock, premium styles.
+              Premium handpicked imported clothing and accessories — limited stock, premium styles, available at Pan UK Kasaragod.
             </p>
             <div className="imported-actions">
               <button className="cta-button" onClick={() => goCategory("Imported")}>
@@ -197,8 +219,8 @@ export default function Home() {
       <section className="categories-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Shop by Categories</h2>
-            <p className="section-subtitle">Explore bestselling categories</p>
+            <h2 className="section-title">Shop Fashion by Category in Kasaragod</h2>
+            <p className="section-subtitle">Explore trending fashion categories at Pan UK - Kasaragod's premier fashion destination</p>
           </div>
 
           <div className="categories-grid">
@@ -221,7 +243,11 @@ export default function Home() {
                     onKeyPress={(e) => { if (e.key === 'Enter') goCategory(categoryName); }}
                   >
                     <div className="category-media" aria-hidden>
-                      <img src={imgSrc} alt={categoryName} loading="lazy" />
+                      <img 
+                        src={imgSrc} 
+                        alt={ALT_TEXT_TEMPLATES.categoryImage(categoryName)} 
+                        loading="lazy" 
+                      />
                     </div>
 
                     <div className="category-label">
@@ -248,8 +274,8 @@ export default function Home() {
       <section className="products-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Featured Products</h2>
-            <p className="section-subtitle">Handpicked just for you</p>
+            <h2 className="section-title">Featured Fashion Products at Pan UK Kasaragod</h2>
+            <p className="section-subtitle">Handpicked trending styles and premium quality clothing for you</p>
           </div>
 
         <div className="products-grid">
