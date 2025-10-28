@@ -6,7 +6,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import './ProductForm.scss';
 import { CATEGORY_MAP, MAIN_CATEGORIES } from '../utils/categories';
 
-const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com';
+const apiBase = import.meta.env.VITE_API_URL || 'https://panukonline.com/';
 const api = axios.create({ baseURL: apiBase });
 
 // --- Local override helpers (localStorage) ---------------------------------

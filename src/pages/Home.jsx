@@ -56,8 +56,9 @@ const CATEGORY_IMAGE_MAP = {
   "Dress code": "https://sc04.alicdn.com/kf/H5178d65553c9407395b9e46362f08b631/220502705/H5178d65553c9407395b9e46362f08b631.jpg",
   "Jacket": "https://avatars.mds.yandex.net/i?id=12467a8d9a2902b6eb71e9dbd656a905_l-5022489-images-thumbs&ref=rim&n=13&w=1500&h=2000",
   "Perfume": "https://i.pinimg.com/736x/da/93/25/da9325eab79b8f642caa0c15937735b9--product-photography-conceptual-photography.jpg",
-  "Lotion": "https://avatars.mds.yandex.net/i?id=8da63c3bc850f5528f0e36b26088f6f2188f763a-10088009-images-thumbs&ref=rim&n=33&w=201&h=250",
+  "Cosmetics": "http://s.cdnsbn.com/images/products/26045168614.jpg",
   "kids&boys": "https://avatars.mds.yandex.net/i?id=9c276447320e36d5b5f3d382bbbb07aa_l-8219723-images-thumbs&ref=rim&n=13&w=900&h=1200",
+  
 };
 
 const CATEGORY_DISCOUNT_MAP = {
@@ -83,9 +84,11 @@ const CATEGORY_DISCOUNT_MAP = {
   "Dress code": "Dress codes",
   "Jacket": "Jacket",
   "Perfume": "Perfume",
-  "Lotion": "Lotion",
+  "Cosmetics": "Cosmetics",
   "Caps": "Caps",
   "kids&boys": "Kids & Boys",
+  "Cosmetics": "Cosmetics",
+  
 };
 
 const CATEGORY_IMAGE_FALLBACK = "https://via.placeholder.com/800x1000?text=Category+Image";
@@ -106,7 +109,7 @@ export default function Home() {
     const list = [
       "Shirt","T-Shirt","Jeans","Cotton Pant","Footwear","Co-ords","Watches","Track","Caps",
       "Jewellery","Sunglasses","Wallets","Combo set","Pants","Shorts","Belt","Suit","Sherwani",
-      "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Lotion","kids&boys",
+      "Jodhpuri","Kurthas","Dress code","Jacket","Perfume","Cosmetics","kids&boys", 
     ];
     const unique = list.filter((v, i, a) => a.indexOf(v) === i);
     return unique;

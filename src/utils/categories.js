@@ -1,11 +1,13 @@
 export const CATEGORY_MAP = {
   mens: [
     "Shirt", "T-Shirt", "Jeans", "Cotton Pant", "Footwear", "Co-ords",
-    "Watches", "Track", "Caps", "Jewellery", "Sunglasses", "Wallets", "Combo set"
+    "Watches", "Track", "Caps", "Jewellery", "Sunglasses", "Wallets",
+    "Combo set", "Belt" // ✅ Added
   ],
   kidsboys: [
     "Shirt", "Pants", "T-Shirt", "Jeans", "Co-ords", "Combo set",
-    "Track", "Shorts", "Footwear", "Belt", "Caps", "Sunglasses", "Suit", "Sherwani"
+    "Track", "Shorts", "Footwear", "Belt", "Caps", "Sunglasses",
+    "Suit", "Sherwani", "Watch" // ✅ Added
   ],
   unisex: [
     "Shirt", "T-Shirt", "Jeans", "Footwear", "Co-ords", "Track",
@@ -16,6 +18,9 @@ export const CATEGORY_MAP = {
     "Watches", "Perfume", "Lotion", "Caps", "Footwear", "Crocs"
   ],
   weddinghub: ["Suit", "Sherwani", "Jodhpuri", "Kurthas", "Dress code"],
+  cosmetics: [ // ✅ New
+    "Whitening cream", "Whitening soap", "Perfume", "Lotion"
+  ],
 };
 
 export const MAIN_CATEGORIES = [
@@ -24,4 +29,5 @@ export const MAIN_CATEGORIES = [
   { value: "unisex", label: "Unisex" },
   { value: "imported", label: "Imported" },
   { value: "weddinghub", label: "Wedding Suit" },
+  { value: "cosmetics", label: "Cosmetics" }, // ✅ New
 ];
