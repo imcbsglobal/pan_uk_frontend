@@ -16,7 +16,7 @@ import { useEffect } from 'react';
  * @param {string} props.robots - Robots meta tag content
  */
 export default function SEO({
-  title = 'Pan UK - Premium Fashion Store in Kasaragod | Clothing & Accessories',
+  title = 'Pan UK - Best Wedding Store in Kasaragod| Clothing & Accessories',
   description = 'Pan UK - Your trusted fashion destination in Anebagilu, Kasaragod. Shop premium clothing, accessories, footwear, and more. Located at Mall of Kasaragod, Dwarka Road.',
   keywords = 'Pan UK Kasaragod, fashion store Kasaragod, clothing shop Anebagilu, mens fashion Kasaragod, premium clothing Dwarka Road, fashion boutique Kerala, trendy clothes Kasaragod',
   canonical,

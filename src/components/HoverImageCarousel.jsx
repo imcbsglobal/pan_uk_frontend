@@ -45,7 +45,7 @@ export default function HoverImageCarousel({
         <img
           key={index} // forces fade animation per image swap
           src={src}
-          alt={alt}
+          alt={`${alt} at best wedding store in kasargod`}
           loading="lazy"
           className="hover-carousel-img"
         />

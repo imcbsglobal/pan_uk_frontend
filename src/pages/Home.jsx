@@ -141,12 +141,12 @@ export default function Home() {
     <>
       {/* SEO Meta Tags and Structured Data */}
       <SEO
-        title="Pan UK - Premium Fashion Store in Kasaragod | Trendy Clothing & Accessories"
+        title="Best Wedding Store in Kasaragod | Trendy Clothing & Accessories"
         description={META_DESCRIPTIONS.home}
-        keywords="Pan UK Kasaragod, fashion store Kasaragod, clothing shop Anebagilu, mens fashion Kasaragod, premium clothing Dwarka Road, Mall of Kasaragod, trendy clothes Kasaragod, footwear store Anebagilu, fashion boutique Kerala, branded clothes Kasaragod, imported fashion Kasaragod"
+        keywords=" Best Wedding Store in Kasaragod ,Pan UK Kasaragod, fashion store Kasaragod, clothing shop Anebagilu, mens fashion Kasaragod, premium clothing Dwarka Road, Mall of Kasaragod, trendy clothes Kasaragod, footwear store Anebagilu, fashion boutique Kerala, branded clothes Kasaragod, imported fashion Kasaragod"
         canonical="https://panukonline.com/"
-        ogTitle="Pan UK - Your Premium Fashion Destination in Kasaragod, Kerala"
-        ogDescription="Shop trendy clothing, accessories, footwear & imported fashion at Pan UK. Located at Mall of Kasaragod, Anebagilu, Dwarka Road. Quality fashion for everyone."
+        ogTitle="Best Wedding Store in Kasaragod Pan UK - Your Premium Fashion Destination in Kasaragod, Kerala"
+        ogDescription="Best Wedding Store in Kasaragod Shop trendy clothing, accessories, footwear & imported fashion at Pan UK. Located at Mall of Kasaragod, Anebagilu, Dwarka Road. Quality fashion for everyone."
         ogImage="https://panukonline.com/panuk-logo.png"
         ogType="website"
         structuredData={{
@@ -168,9 +168,11 @@ export default function Home() {
             autoPlay
             muted
             playsInline
+            alt
             onEnded={(e) => { e.target.currentTime = 0; e.target.play(); }}
           >
             <source src={bannerVideo} type="video/mp4" />
+            Best Wedding Store in Kasaragod
             Your browser does not support the video tag.
           </video>
 
@@ -200,7 +202,7 @@ export default function Home() {
           <div className="imported-text">
             <h2 className="imported-title">Exclusive Imported Fashion Collection</h2>
             <p className="imported-subtitle">
-              Premium handpicked imported clothing and accessories — limited stock, premium styles, available at Pan UK- Best Wedding Store in Kasaragod.
+              Premium handpicked imported clothing — limited stock, premium styles, available at Pan UK- Best Wedding Store in Kasaragod.
             </p>
             <div className="imported-actions">
               <button className="cta-button" onClick={() => goCategory("Imported")}>

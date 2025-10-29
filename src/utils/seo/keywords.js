@@ -114,8 +114,8 @@ export const META_DESCRIPTIONS = {
 // Alt Text Templates
 export const ALT_TEXT_TEMPLATES = {
   logo: 'Pan UK - Premium Fashion Store in Kasaragod, Kerala',
-  categoryImage: (category) => `${category} collection at Pan UK, premium fashion store in Kasaragod, Anebagilu`,
+  categoryImage: (category) => `${category} at best wedding store in  Kasaragod`,
   productImage: (productName, index) => `${productName} - Pan UK Kasaragod fashion store - Image ${index + 1}`,
   banner: 'Pan UK fashion store - Trendy clothing collection in Kasaragod, Mall of Kasaragod, Dwarka Road',
-  imported: 'Exclusive imported fashion collection at Pan UK, Kasaragod - Premium quality clothing and accessories'
+  imported: 'Best Wedding Store in Kasaragod'
 };
