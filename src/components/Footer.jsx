@@ -16,7 +16,7 @@ function Footer() {
             />
           </div>
           <p className="footer-description">
-            Discover premium wedding fashion collections with our wide range of quality clothing and accessories for gents and boys for every special occasion.
+            Discover premium wedding fashion collections with our wide range of quality clothing and accessories for gents and boys for every special occasion . Best Wedding Store in Kasaragod.
           </p>
         </div>
 

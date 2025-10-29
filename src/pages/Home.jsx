@@ -200,7 +200,7 @@ export default function Home() {
           <div className="imported-text">
             <h2 className="imported-title">Exclusive Imported Fashion Collection</h2>
             <p className="imported-subtitle">
-              Premium handpicked imported clothing and accessories — limited stock, premium styles, available at Pan UK Kasaragod.
+              Premium handpicked imported clothing and accessories — limited stock, premium styles, available at Pan UK- Best Wedding Store in Kasaragod.
             </p>
             <div className="imported-actions">
               <button className="cta-button" onClick={() => goCategory("Imported")}>
@@ -222,8 +222,8 @@ export default function Home() {
       <section className="categories-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Shop Fashion by Category in Kasaragod</h2>
-            <p className="section-subtitle">Explore trending fashion categories at Pan UK - Kasaragod's premier fashion destination</p>
+            <h2 className="section-title">Shop Fashion by Category at  Best Wedding Store in Kasaragod</h2>
+            <p className="section-subtitle">Explore trending fashion categories at Pan UK - Best Wedding Store in Kasaragod.</p>
           </div>
 
           <div className="categories-grid">
@@ -277,8 +277,8 @@ export default function Home() {
       <section className="products-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Featured Fashion Products at Pan UK Kasaragod</h2>
-            <p className="section-subtitle">Handpicked trending styles and premium quality clothing for you</p>
+            <h2 className="section-title">Featured Fashion Products at Pan UK - Best Wedding Store in Kasaragod.</h2>
+            <p className="section-subtitle">Handpicked trending styles and premium quality clothing for you at Best Wedding Store in Kasaragod.</p>
           </div>
 
         <div className="products-grid">

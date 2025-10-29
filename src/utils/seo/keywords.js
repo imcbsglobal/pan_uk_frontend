@@ -89,7 +89,7 @@ export const BUSINESS_INFO = {
 // SEO-optimized Content Snippets
 export const CONTENT_SNIPPETS = {
   homepage: {
-    h1: 'Pan UK - Premium Fashion Store in Kasaragod, Kerala',
+    h1: 'Best Wedding store in kasaragod',
     subtitle: 'Discover Trending Fashion Collections at Mall of Kasaragod, Anebagilu',
     description: 'Shop the latest fashion trends at Pan UK, your trusted clothing destination in Kasaragod. Located at Mall of Kasaragod, Dwarka Road, Anebagilu. Premium clothing, accessories, footwear, and imported fashion items.'
   },
